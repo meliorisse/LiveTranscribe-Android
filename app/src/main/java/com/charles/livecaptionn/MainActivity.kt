@@ -12,6 +12,8 @@ import com.charles.livecaptionn.review.PlayReviewHelper
 import androidx.lifecycle.lifecycleScope
 import kotlinx.coroutines.launch
 import android.provider.Settings
+import androidx.activity.enableEdgeToEdge
+import com.charles.livecaptionn.ui.theme.LiveCaptionTheme
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
@@ -74,6 +76,7 @@ class MainActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        enableEdgeToEdge()
         // Play In-App Review - trigger after 3 launches
         try {
             val prefs = getSharedPreferences("play_review", MODE_PRIVATE)
@@ -94,7 +97,7 @@ class MainActivity : ComponentActivity() {
                 .collectAsStateWithLifecycle(initialValue = null)
             val onboardingComplete = settings?.onboardingComplete ?: true
             UiStringsProvider(app.container) {
-                MaterialTheme {
+                LiveCaptionTheme {
                     Surface(color = MaterialTheme.colorScheme.background) {
                         if (!onboardingComplete) {
                             OnboardingScreen(

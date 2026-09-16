@@ -1508,39 +1508,42 @@ private fun UnsupportedDeviceBanner(
     Card(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(containerColor = Color(0xFFFFEBEE))
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.errorContainer)
     ) {
         Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Icon(
                     Icons.Filled.Error,
                     contentDescription = null,
-                    tint = Color(0xFFC62828),
+                    tint = MaterialTheme.colorScheme.onErrorContainer,
                     modifier = Modifier.size(22.dp)
                 )
                 Spacer(Modifier.width(8.dp))
                 Text(
                     text = "Unsupported for On-Device AI",
                     fontWeight = FontWeight.Bold,
-                    color = Color(0xFFB71C1C),
+                    color = MaterialTheme.colorScheme.onErrorContainer,
                     style = MaterialTheme.typography.titleSmall
                 )
             }
             Text(
                 text = "This device does not meet the minimum hardware requirements (2.5 GB RAM, 4 CPU cores) for on-device Vosk & ML Kit processing. To prevent crashes, the app has automatically enabled Remote Whisper and LibreTranslate.",
                 style = MaterialTheme.typography.bodySmall,
-                color = Color(0xFF37474F)
+                color = MaterialTheme.colorScheme.onErrorContainer
             )
             Text(
                 text = "Detected: ${specs.totalRamMb} MB RAM • ${specs.cpuCores} cores • ${if (specs.is64Bit) "64-bit" else "32-bit"} • ${specs.freeStorageMb} MB free",
                 style = MaterialTheme.typography.labelSmall,
-                color = Color(0xFF546E7A)
+                color = MaterialTheme.colorScheme.onErrorContainer
             )
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 Button(
                     onClick = onWatchTutorial,
                     shape = RoundedCornerShape(8.dp),
-                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFC62828)),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = MaterialTheme.colorScheme.error,
+                        contentColor = MaterialTheme.colorScheme.onError
+                    ),
                     modifier = Modifier.weight(1f)
                 ) {
                     Icon(Icons.Filled.PlayArrow, contentDescription = null, modifier = Modifier.size(16.dp))
@@ -1570,34 +1573,37 @@ private fun BorderlineDeviceBanner(
     Card(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(containerColor = Color(0xFFFFF8E1))
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.tertiaryContainer)
     ) {
         Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Icon(
                     Icons.Filled.Memory,
                     contentDescription = null,
-                    tint = Color(0xFFE65100),
+                    tint = MaterialTheme.colorScheme.onTertiaryContainer,
                     modifier = Modifier.size(22.dp)
                 )
                 Spacer(Modifier.width(8.dp))
                 Text(
                     text = "Notice: Limited Hardware Resources",
                     fontWeight = FontWeight.Bold,
-                    color = Color(0xFFE65100),
+                    color = MaterialTheme.colorScheme.onTertiaryContainer,
                     style = MaterialTheme.typography.titleSmall
                 )
             }
             Text(
                 text = "Your device (${specs.deviceModel}) meets the minimum requirements, but has limited resources (${specs.totalRamMb} MB RAM, ${specs.cpuCores} cores, ${if (specs.is64Bit) "64-bit" else "32-bit"}). On-device models may experience latency or memory pressure. For best performance, remote Whisper is recommended.",
                 style = MaterialTheme.typography.bodySmall,
-                color = Color(0xFF3E2723)
+                color = MaterialTheme.colorScheme.onTertiaryContainer
             )
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 Button(
                     onClick = onProceedAnyway,
                     shape = RoundedCornerShape(8.dp),
-                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFE65100)),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = MaterialTheme.colorScheme.tertiary,
+                        contentColor = MaterialTheme.colorScheme.onTertiary
+                    ),
                     modifier = Modifier.weight(1f)
                 ) {
                     Text("Proceed Anyway", fontSize = 12.sp, fontWeight = FontWeight.Bold)

@@ -514,9 +514,9 @@ fun TutorialScreen(
                     shape = RoundedCornerShape(12.dp),
                     colors = CardDefaults.cardColors(
                         containerColor = when (deviceSpecs.tier) {
-                            CompatibilityTier.PASSED -> Color(0xFFE8F5E9)
-                            CompatibilityTier.BORDERLINE -> Color(0xFFFFF8E1)
-                            CompatibilityTier.UNSUPPORTED -> Color(0xFFFFEBEE)
+                            CompatibilityTier.PASSED -> MaterialTheme.colorScheme.secondaryContainer
+                            CompatibilityTier.BORDERLINE -> MaterialTheme.colorScheme.tertiaryContainer
+                            CompatibilityTier.UNSUPPORTED -> MaterialTheme.colorScheme.errorContainer
                         }
                     )
                 ) {
@@ -532,9 +532,9 @@ fun TutorialScreen(
                             },
                             contentDescription = null,
                             tint = when (deviceSpecs.tier) {
-                                CompatibilityTier.PASSED -> Color(0xFF2E7D32)
-                                CompatibilityTier.BORDERLINE -> Color(0xFFF57F17)
-                                CompatibilityTier.UNSUPPORTED -> Color(0xFFC62828)
+                                CompatibilityTier.PASSED -> MaterialTheme.colorScheme.onSecondaryContainer
+                                CompatibilityTier.BORDERLINE -> MaterialTheme.colorScheme.onTertiaryContainer
+                                CompatibilityTier.UNSUPPORTED -> MaterialTheme.colorScheme.onErrorContainer
                             },
                             modifier = Modifier.size(24.dp)
                         )
@@ -544,12 +544,12 @@ fun TutorialScreen(
                                 text = "Your Device: ${deviceSpecs.deviceModel} (${deviceSpecs.tier.label})",
                                 fontWeight = FontWeight.Bold,
                                 fontSize = 13.sp,
-                                color = Color.Black
+                                color = androidx.compose.material3.LocalContentColor.current
                             )
                             Text(
                                 text = "${deviceSpecs.totalRamMb} MB RAM • ${deviceSpecs.cpuCores} cores • ${if (deviceSpecs.is64Bit) "64-bit" else "32-bit"} • ${deviceSpecs.freeStorageMb} MB free",
                                 fontSize = 11.sp,
-                                color = Color.DarkGray
+                                color = androidx.compose.material3.LocalContentColor.current
                             )
                         }
                     }
