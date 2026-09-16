@@ -6,7 +6,6 @@ plugins {
     id("org.jetbrains.kotlin.plugin.compose")
     id("com.google.gms.google-services")
     id("com.google.firebase.crashlytics")
-    id("com.google.firebase.firebase-perf")
 }
 
 // Load local.properties for private server URLs (not committed to git)
@@ -259,6 +258,7 @@ dependencies {
     "githubImplementation"("androidx.browser:browser:1.8.0")
 
     testImplementation("junit:junit:4.13.2")
+    testImplementation("org.json:json:20240303")
     testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:1.8.1")
     androidTestImplementation("androidx.test.ext:junit:1.2.1")
     // Espresso 3.7 supports the Android 17 input APIs used by the Pixel test device.

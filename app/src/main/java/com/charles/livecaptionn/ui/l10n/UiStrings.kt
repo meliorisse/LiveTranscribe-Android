@@ -62,6 +62,16 @@ object UiStringCatalog {
 
     /** Every unique English string / template the UI may pass through `t[...]`. */
     val ALL: List<String> = listOf(
+        "About this fork",
+        "This is an independent fork of LiveCaptionN maintained by meliorisse. No support is offered for this version.",
+        "Version %s",
+        "Updates come only from meliorisse/LiveTranscribe-Android releases on GitHub.",
+        "Checking for updates…",
+        "You have the latest version.",
+        "No published releases found.",
+        "Could not check for updates. Check your connection and try again.",
+        "Check for updates",
+        "Download %s",
         // App / top bar
         appName,
         "Start",

@@ -120,9 +120,18 @@ class MainViewModel(
                     if (info != null) container.updateNotifier.notifyIfNew(info)
                 }
             }
+            viewModelScope.launch {
+                container.updateChecker.status.collectLatest { status ->
+                    mutableState.value = mutableState.value.copy(updateCheckStatus = status)
+                }
+            }
             // One-shot check on launch so users see an update even before the periodic worker runs.
             viewModelScope.launch { container.updateChecker.check() }
         }
+    }
+
+    fun checkForUpdates() {
+        viewModelScope.launch { container.updateChecker.check() }
     }
 
     fun dismissUpdate() {

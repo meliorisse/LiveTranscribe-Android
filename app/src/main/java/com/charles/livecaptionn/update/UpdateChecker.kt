@@ -1,7 +1,8 @@
 package com.charles.livecaptionn.update
 
-import android.util.Log
 import com.charles.livecaptionn.BuildConfig
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -12,28 +13,20 @@ import okhttp3.Request
 import org.json.JSONObject
 import java.util.concurrent.TimeUnit
 
-/**
- * Polls the GitHub Releases API for a new version of the app and exposes the
- * result as a [StateFlow]. Thread-safe: [check] can be called from any scope.
- *
- * Update detection:
- *   - Parses `tag_name` from `/releases/latest`.
- *   - Expects the CI tag format `v1.0.<buildNumber>` set by `.github/workflows/build.yml`.
- *   - If `<buildNumber>` > [BuildConfig.VERSION_CODE], an [UpdateInfo] is emitted.
- *
- * Tags that don't match the format are ignored, so manually tagged semver
- * releases won't accidentally trigger false positives. Dev builds (versionCode = 1)
- * will see any `v1.0.N` tag where N > 1.
- */
-class UpdateChecker {
+enum class UpdateCheckStatus { IDLE, CHECKING, UP_TO_DATE, AVAILABLE, NO_RELEASE, FAILED }
 
-    private val mutable = MutableStateFlow<UpdateInfo?>(null)
-    val available: StateFlow<UpdateInfo?> = mutable.asStateFlow()
-
-    private val client = OkHttpClient.Builder()
+/** Checks stable GitHub releases from this fork; downloaded APKs are installed by the user. */
+class UpdateChecker(
+    private val client: OkHttpClient = OkHttpClient.Builder()
         .connectTimeout(10, TimeUnit.SECONDS)
         .readTimeout(20, TimeUnit.SECONDS)
         .build()
+) {
+    private val mutable = MutableStateFlow<UpdateInfo?>(null)
+    val available: StateFlow<UpdateInfo?> = mutable.asStateFlow()
+    private val mutableStatus = MutableStateFlow(UpdateCheckStatus.IDLE)
+    val status: StateFlow<UpdateCheckStatus> = mutableStatus.asStateFlow()
+    private val checkMutex = Mutex()
 
     /**
      * Fetches /releases/latest. Returns the [UpdateInfo] when a newer build is
@@ -41,40 +34,56 @@ class UpdateChecker {
      */
     suspend fun check(): UpdateInfo? = withContext(Dispatchers.IO) {
         if (!BuildConfig.GITHUB_SELF_UPDATE_ENABLED) return@withContext null
-        val url = "https://api.github.com/repos/${BuildConfig.UPDATE_REPO_OWNER}/" +
-            "${BuildConfig.UPDATE_REPO_NAME}/releases/latest"
-        val request = Request.Builder()
-            .url(url)
-            .header("Accept", "application/vnd.github+json")
-            .header("User-Agent", "LiveCaptionN-Android/${BuildConfig.VERSION_NAME}")
-            .build()
-
+        if (!checkMutex.tryLock()) return@withContext null
+        mutableStatus.value = UpdateCheckStatus.CHECKING
         try {
+            val request = Request.Builder()
+                .url("https://api.github.com/repos/${BuildConfig.UPDATE_REPO_OWNER}/${BuildConfig.UPDATE_REPO_NAME}/releases/latest")
+                .header("Accept", "application/vnd.github+json")
+                .header("User-Agent", "LiveCaptionN-Android/${BuildConfig.VERSION_NAME}")
+                .build()
             client.newCall(request).execute().use { response ->
-                if (!response.isSuccessful) {
-                    Log.w(TAG, "Update check HTTP ${response.code}")
+                if (response.code == 404) {
+                    mutable.value = null
+                    mutableStatus.value = UpdateCheckStatus.NO_RELEASE
                     return@withContext null
                 }
-                val body = response.body?.string().orEmpty()
-                val parsed = parseRelease(body) ?: return@withContext null
-                if (parsed.buildNumber > BuildConfig.VERSION_CODE) {
+                if (!response.isSuccessful) {
+                    mutableStatus.value = UpdateCheckStatus.FAILED
+                    return@withContext null
+                }
+                val parsed = parseRelease(response.body?.string().orEmpty())
+                if (parsed == null) {
+                    mutableStatus.value = UpdateCheckStatus.FAILED
+                    return@withContext null
+                }
+                // Compare version names, so local and CI version-code schemes both work.
+                val currentVersion = parseBuildNumber(BuildConfig.VERSION_NAME) ?: BuildConfig.VERSION_CODE
+                if (parsed.buildNumber > currentVersion) {
                     mutable.value = parsed
+                    mutableStatus.value = UpdateCheckStatus.AVAILABLE
                     parsed
                 } else {
-                    // Keep prior value cleared so dismissed banners stay dismissed.
                     mutable.value = null
+                    mutableStatus.value = UpdateCheckStatus.UP_TO_DATE
                     null
                 }
             }
-        } catch (t: Throwable) {
-            Log.w(TAG, "Update check failed", t)
+        } catch (e: CancellationException) {
+            mutableStatus.value = UpdateCheckStatus.IDLE
+            throw e
+        } catch (e: Exception) {
+            mutableStatus.value = UpdateCheckStatus.FAILED
             null
+        } finally {
+            checkMutex.unlock()
         }
     }
 
     /** Clears any currently-surfaced update (used when the user dismisses the banner). */
     fun dismiss() {
         mutable.value = null
+        mutableStatus.value = UpdateCheckStatus.IDLE
     }
 
     private fun parseRelease(json: String): UpdateInfo? {
@@ -94,7 +103,9 @@ class UpdateChecker {
                     val assetName = asset.optString("name")
                     val download = asset.optString("browser_download_url")
                     if (download.isBlank() || !assetName.endsWith(".apk", ignoreCase = true)) continue
-                    // Prefer the signed release APK; fall back to debug/unsigned otherwise.
+                    if (assetName.contains("unsigned", ignoreCase = true) ||
+                        assetName.contains("debug", ignoreCase = true)) continue
+                    // Prefer a release APK; never offer unsigned or debug builds.
                     if (assetName.contains("release", ignoreCase = true)) return@let download
                     if (best == null) best = download
                 }
@@ -110,20 +121,17 @@ class UpdateChecker {
                 notes = notes
             )
         } catch (t: Throwable) {
-            Log.w(TAG, "Failed to parse release json", t)
             null
         }
     }
 
     companion object {
-        private const val TAG = "UpdateChecker"
-
         /**
          * Extracts a comparable build number from a semver tag.
          *
          * Accepts `v1.0.42`, `1.2.3`, `v2.0.0-beta`, etc. — anything matching
          * `v?X.Y.Z(...)`. Returns (major * 1_000_000 + minor * 1_000 + patch)
-         * so comparisons work naturally with [BuildConfig.VERSION_CODE].
+         * for comparing release tags with [BuildConfig.VERSION_NAME].
          *
          * Returns null for non-semver tags (e.g. `v1`, `v1.0`, `latest`).
          */

@@ -101,11 +101,6 @@ import com.charles.livecaptionn.speech.RecognitionStatus
 import com.charles.livecaptionn.speech.ModelQuality
 import com.charles.livecaptionn.speech.VoskModelInfo
 import com.charles.livecaptionn.translation.MlKitLanguages
-import com.charles.livecaptionn.ui.feedback.FeedbackViewModel
-import com.charles.livecaptionn.ui.feedback.IssueDetailsDialog
-import com.charles.livecaptionn.ui.feedback.ReportProblemDialog
-import com.charles.livecaptionn.ui.feedback.SubmitSuccessSnackbar
-import com.charles.livecaptionn.ui.feedback.SupportAndFeedbackCard
 import com.charles.livecaptionn.overlay.OverlayFontCatalog
 import com.charles.livecaptionn.overlay.OverlayThemeCatalog
 import com.charles.livecaptionn.ui.l10n.LocalUiStrings
@@ -138,18 +133,13 @@ fun MainScreen(
     var showUpgradePrompt by remember { mutableStateOf(false) }
     LaunchedEffect(Unit) { viewModel.refreshPermissionState() }
 
-    val feedbackCtx = LocalContext.current
-    val feedbackApp = feedbackCtx.applicationContext as com.charles.livecaptionn.LiveCaptionApp
-    val feedbackVm: FeedbackViewModel = viewModel(
-        factory = FeedbackViewModel.Factory(feedbackCtx, feedbackApp.container.bugReportRepo)
-    )
-    val feedbackState by feedbackVm.state.collectAsStateWithLifecycle()
-
+    val appContext = LocalContext.current
+    val app = appContext.applicationContext as com.charles.livecaptionn.LiveCaptionApp
     val premiumVm: PremiumViewModel = viewModel(
-        factory = PremiumViewModel.Factory(feedbackApp.container.premiumRepository)
+        factory = PremiumViewModel.Factory(app.container.premiumRepository)
     )
     val premiumState by premiumVm.state.collectAsStateWithLifecycle()
-    val activity = feedbackCtx as? android.app.Activity
+    val activity = appContext as? android.app.Activity
 
     LaunchedEffect(pendingCheckoutSessionId) {
         if (pendingCheckoutSessionId != null) {
@@ -277,8 +267,8 @@ fun MainScreen(
             FeatureToolsCard(
                 settings = ui.settings,
                 hasPro = BuildConfig.SELF_BUILD_PRO || premiumState.premium.hasPro,
-                profiles = feedbackApp.container.captionProfiles,
-                glossary = feedbackApp.container.glossary,
+                profiles = app.container.captionProfiles,
+                glossary = app.container.glossary,
                 micPermissionGranted = ui.micPermissionGranted,
                 overlayPermissionGranted = ui.overlayPermissionGranted,
                 voskModels = ui.voskModels,
@@ -320,21 +310,12 @@ fun MainScreen(
                     ui.settings.sttBackend == SttBackend.REMOTE_WHISPER
             )
 
-            SupportAndFeedbackCard(
-                state = feedbackState,
-                onReportProblem = { feedbackVm.showReportDialog() },
-                onOpenReport = { feedbackVm.openIssueDetails(it) }
+            ForkInfoCard(
+                status = ui.updateCheckStatus,
+                availableUpdate = ui.availableUpdate,
+                onCheck = viewModel::checkForUpdates,
+                onDownload = { info -> viewModel.openUpdateUrl(updateCtx, info) }
             )
-
-            MoreAppsSection()
-            Spacer(modifier = Modifier.height(16.dp))
-
-            if (feedbackState.submitSuccess) {
-                SubmitSuccessSnackbar(
-                    message = t["Report submitted successfully!"],
-                    onDismiss = { feedbackVm.clearSubmitSuccess() }
-                )
-            }
 
             Spacer(Modifier.height(8.dp))
         }
@@ -371,32 +352,6 @@ fun MainScreen(
                     TextButton(onClick = { showUpgradePrompt = false }) { Text(t["View upgrade options"]) }
                 },
                 dismissButton = { TextButton(onClick = { showUpgradePrompt = false }) { Text(t["Close"]) } }
-            )
-        }
-
-        if (feedbackState.showReportDialog) {
-            ReportProblemDialog(
-                state = feedbackState,
-                onDismiss = { feedbackVm.hideReportDialog() },
-                onTitleChange = { feedbackVm.updateReportTitle(it) },
-                onDescriptionChange = { feedbackVm.updateReportDescription(it) },
-                onNameChange = { feedbackVm.updateReporterName(it) },
-                onEmailChange = { feedbackVm.updateReporterEmail(it) },
-                onIncludeDiagnosticsChange = { feedbackVm.updateIncludeDiagnostics(it) },
-                onAttachmentSelected = { feedbackVm.updateAttachmentUri(it) },
-                onClearAttachment = { feedbackVm.clearAttachment() },
-                onSubmit = { feedbackVm.submitReport() }
-            )
-        }
-
-        if (feedbackState.showIssueDetails) {
-            IssueDetailsDialog(
-                state = feedbackState,
-                onDismiss = { feedbackVm.closeIssueDetails() },
-                onReplyTextChange = { feedbackVm.updateReplyText(it) },
-                onReplyAttachmentSelected = { feedbackVm.updateReplyAttachmentUri(it) },
-                onClearReplyAttachment = { feedbackVm.clearReplyAttachment() },
-                onPostReply = { feedbackVm.postReply() }
             )
         }
     }

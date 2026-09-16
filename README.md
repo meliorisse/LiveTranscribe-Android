@@ -2,6 +2,8 @@
 
 # LiveCaptionN
 
+This is an independent fork maintained by meliorisse. No support is offered for this version. The app’s About this fork card includes a manual update check against this fork’s GitHub releases; checks also run at launch and periodically in the background.
+
 **Real-time speech transcription and EN ⇄ VI translation, floating over any Android app.**
 
 [![Build & Release](https://github.com/chartmann1590/LiveTranscribe-Android/actions/workflows/build.yml/badge.svg)](https://github.com/chartmann1590/LiveTranscribe-Android/actions/workflows/build.yml)
