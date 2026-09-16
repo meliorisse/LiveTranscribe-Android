@@ -27,6 +27,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import com.charles.livecaptionn.BuildConfig
 import com.charles.livecaptionn.billing.PremiumProduct
 import com.charles.livecaptionn.ui.l10n.LocalUiStrings
 
@@ -41,6 +42,16 @@ fun PremiumCard(
     modifier: Modifier = Modifier
 ) {
     val t = LocalUiStrings.current
+    if (BuildConfig.SELF_BUILD_PRO) {
+        Card(modifier = modifier.fillMaxWidth(), shape = RoundedCornerShape(16.dp)) {
+            Text(
+                text = t["Pro and Ad-Free are included in this self-built version. No subscription required."],
+                modifier = Modifier.padding(16.dp),
+                style = MaterialTheme.typography.bodyMedium
+            )
+        }
+        return
+    }
     Card(
         modifier = modifier.fillMaxWidth(),
         shape = RoundedCornerShape(16.dp)

@@ -26,13 +26,14 @@ class LiveCaptionApp : Application() {
         container = AppContainer(this)
         UpdateCheckWorker.schedule(this)
 
-        FirebaseApp.initializeApp(this)
-        // Don't pollute the Crashlytics dashboard or skew Analytics with developer
-        // builds. Performance Monitoring follows the same toggle.
-        val collectInProd = !BuildConfig.DEBUG
-        Firebase.crashlytics.isCrashlyticsCollectionEnabled = collectInProd
-        Firebase.analytics.setAnalyticsCollectionEnabled(collectInProd)
-        Firebase.performance.isPerformanceCollectionEnabled = collectInProd
+        if (!BuildConfig.SELF_BUILD_PRO) {
+            FirebaseApp.initializeApp(this)
+            // Keep developer builds out of production telemetry.
+            val collectInProd = !BuildConfig.DEBUG
+            Firebase.crashlytics.isCrashlyticsCollectionEnabled = collectInProd
+            Firebase.analytics.setAnalyticsCollectionEnabled(collectInProd)
+            Firebase.performance.isPerformanceCollectionEnabled = collectInProd
+        }
 
         if (!AdUnits.ENABLED) return
 

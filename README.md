@@ -57,7 +57,7 @@ Both stages of the pipeline can run **fully on-device**: streaming Vosk handles 
 - **Pro glossary** — define custom phrases and replacements for names, terminology, and recurring translations.
 - **Tunable overlay** — text size, opacity, width/height, "show original" toggle (dual-line original + translated display), minimized state, and remembered screen position.
 - **Private by default** — speech processing and translation both run against endpoints you configure. No accounts, no mandatory telemetry (Firebase Analytics/Crashlytics only in release builds, disabled in debug).
-- **Optional Ad-Free & Pro subscriptions** — the core captioning experience remains free with ads. **Ad-Free** removes the banner/app-open ads. **Pro** includes Ad-Free and unlocks larger server-grade Vosk models, more ML Kit translation languages, extra overlay themes/fonts, reusable Pro presets, and glossary replacements. Billing is Google Play Billing on the Play Store build and Stripe (via a Cloudflare Worker) on the self-updating GitHub build.
+- **Pro included in this fork** — GitHub/self-built APKs include Ad-Free, larger Vosk models, all translation languages, overlay themes/fonts, Pro presets, and glossary replacements without payment, an account, or a billing server. The separate Play Store flavor retains its original billing behavior.
 
 ## Translating different languages
 
@@ -137,23 +137,23 @@ Requires **JDK 17** and the Android SDK. Tested with Android Studio Hedgehog+.
 
 ```bash
 # Clone
-git clone https://github.com/chartmann1590/LiveTranscribe-Android.git
+git clone https://github.com/meliorisse/LiveTranscribe-Android.git
 cd LiveTranscribe-Android
 
 # Debug APK
-./gradlew assembleDebug
+./gradlew assembleGithubDebug
 
 # Release APK (unsigned)
-./gradlew assembleRelease
+./gradlew assembleGithubRelease
 
 # Unit tests
-./gradlew test
+./gradlew testGithubDebugUnitTest
 
 # Instrumentation tests (connected device required)
 ./gradlew connectedAndroidTest
 ```
 
-Output APKs land in `app/build/outputs/apk/`.
+Output APKs land in `app/build/outputs/apk/`. The GitHub flavor grants permanent local Pro access and disables ads in both debug and release builds; no Stripe or Firebase configuration is needed, and Firebase telemetry is not initialized. Its update checker points to `meliorisse/LiveTranscribe-Android`. The MIT license and upstream attribution remain in place. GitHub Actions in this fork runs the tests and uploads debug and unsigned release APK artifacts without requiring repository secrets or publishing releases automatically.
 
 ## Requirements
 

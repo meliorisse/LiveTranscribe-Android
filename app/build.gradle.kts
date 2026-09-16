@@ -109,7 +109,7 @@ android {
             localProps.getProperty("ads.admob.app.id", "ca-app-pub-3940256099942544~3347511713")
 
         // GitHub repo that the in-app update checker queries for new releases.
-        buildConfigField("String", "UPDATE_REPO_OWNER", "\"chartmann1590\"")
+        buildConfigField("String", "UPDATE_REPO_OWNER", "\"meliorisse\"")
         buildConfigField("String", "UPDATE_REPO_NAME", "\"LiveTranscribe-Android\"")
 
     }
@@ -119,6 +119,8 @@ android {
         create("github") {
             dimension = "distribution"
             isDefault = true
+            buildConfigField("boolean", "SELF_BUILD_PRO", "true")
+            buildConfigField("boolean", "ADS_ENABLED", "false")
             buildConfigField("boolean", "GITHUB_SELF_UPDATE_ENABLED", "true")
             // Cloudflare Worker (Stripe billing backend) config. Not committed —
             // sourced from local.properties, same pattern as translate.url/stt.url.
@@ -136,6 +138,7 @@ android {
                 "\"${localProps.getProperty("premium.owner.access_key", "")}\"")
         }
         create("playstore") {
+            buildConfigField("boolean", "SELF_BUILD_PRO", "false")
             dimension = "distribution"
             buildConfigField("boolean", "GITHUB_SELF_UPDATE_ENABLED", "false")
             // Play Billing subscription product IDs, configured once in Play Console.
@@ -263,4 +266,11 @@ dependencies {
     androidTestImplementation("androidx.compose.ui:ui-test-junit4")
     debugImplementation("androidx.compose.ui:ui-tooling")
     debugImplementation("androidx.compose.ui:ui-test-manifest")
+}
+
+// Self-built GitHub APKs do not need the upstream Firebase project configuration.
+tasks.matching {
+    it.name.startsWith("processGithub") && it.name.endsWith("GoogleServices")
+}.configureEach {
+    enabled = false
 }
