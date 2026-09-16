@@ -47,6 +47,13 @@ import kotlinx.coroutines.launch
 
 class MainActivity : ComponentActivity() {
 
+    companion object {
+        const val ACTION_QUICK_START = "com.charles.livecaptionn.action.QUICK_START"
+    }
+
+    private var quickStartRequested = false
+    private var returnToPreviousApp = false
+
     private var showHistory by mutableStateOf(false)
 
     /** Stripe Checkout session ID carried back by the /checkout/success deep link (github flavor). */
@@ -55,7 +62,7 @@ class MainActivity : ComponentActivity() {
     private val audioPermissionLauncher = registerForActivityResult(
         ActivityResultContracts.RequestPermission()
     ) { granted ->
-        if (granted) startCaptioning()
+        if (granted) startCaptioning() else returnToPreviousApp = false
     }
 
     private val mediaProjectionLauncher = registerForActivityResult(
@@ -65,6 +72,7 @@ class MainActivity : ComponentActivity() {
             MediaProjectionHolder.set(result.resultCode, result.data!!.clone() as Intent)
             startCaptionService(AudioSource.SYSTEM)
         } else {
+            returnToPreviousApp = false
             (application as LiveCaptionApp).container.runtimeStore.update {
                 it.copy(
                     status = com.charles.livecaptionn.speech.RecognitionStatus.ERROR,
@@ -91,6 +99,17 @@ class MainActivity : ComponentActivity() {
 
         val app = application as LiveCaptionApp
         pendingCheckoutSessionId = extractCheckoutSessionId(intent)
+        quickStartRequested = intent.action == ACTION_QUICK_START
+        lifecycleScope.launch {
+            app.container.runtimeStore.state.collect { runtime ->
+                if (returnToPreviousApp && runtime.running) {
+                    returnToPreviousApp = false
+                    moveTaskToBack(true)
+                } else if (returnToPreviousApp && runtime.lastError != null) {
+                    returnToPreviousApp = false
+                }
+            }
+        }
         setContent {
             val vm: MainViewModel = viewModel(factory = MainViewModelFactory(app.container, application))
             val settings by app.container.settingsRepository.settingsFlow
@@ -143,7 +162,32 @@ class MainActivity : ComponentActivity() {
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
         setIntent(intent)
+        quickStartRequested = intent.action == ACTION_QUICK_START
         extractCheckoutSessionId(intent)?.let { pendingCheckoutSessionId = it }
+    }
+
+    override fun onResume() {
+        super.onResume()
+        if (!quickStartRequested) return
+        quickStartRequested = false
+        // Consume once: rotating or returning from a permission dialog must not restart capture.
+        intent.action = Intent.ACTION_MAIN
+        lifecycleScope.launch {
+            val app = application as LiveCaptionApp
+            val settings = app.container.settingsRepository.settingsFlow.first()
+            if (!settings.onboardingComplete || !Settings.canDrawOverlays(this@MainActivity)) {
+                android.widget.Toast.makeText(
+                    this@MainActivity, R.string.quick_caption_setup, android.widget.Toast.LENGTH_LONG
+                ).show()
+                return@launch
+            }
+            if (app.container.runtimeStore.state.value.running) {
+                moveTaskToBack(true)
+                return@launch
+            }
+            returnToPreviousApp = true
+            startCaptioning()
+        }
     }
 
     private fun extractCheckoutSessionId(intent: Intent?): String? {

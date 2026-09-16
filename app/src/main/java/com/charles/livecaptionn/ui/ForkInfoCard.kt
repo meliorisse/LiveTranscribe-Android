@@ -22,6 +22,7 @@ fun ForkInfoCard(
     status: UpdateCheckStatus,
     availableUpdate: UpdateInfo?,
     onCheck: () -> Unit,
+    onAddQuickTile: () -> Unit,
     onDownload: (UpdateInfo) -> Unit
 ) {
     val t = LocalUiStrings.current
@@ -30,6 +31,10 @@ fun ForkInfoCard(
             Text(t["About this fork"], style = MaterialTheme.typography.titleMedium)
             Text(t["This is an independent fork of LiveCaptionN maintained by meliorisse. No support is offered for this version."])
             Text(t.format("Version %s", BuildConfig.VERSION_NAME))
+            Text(t["Start floating translation from any app using the Quick Settings tile. Tap it again to stop."])
+            OutlinedButton(onClick = onAddQuickTile) {
+                Text(t["Add quick action"])
+            }
             if (BuildConfig.GITHUB_SELF_UPDATE_ENABLED) {
                 Text(t["Updates come only from meliorisse/LiveTranscribe-Android releases on GitHub."])
                 val message = when (status) {

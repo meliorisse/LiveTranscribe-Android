@@ -314,6 +314,7 @@ fun MainScreen(
                 status = ui.updateCheckStatus,
                 availableUpdate = ui.availableUpdate,
                 onCheck = viewModel::checkForUpdates,
+                onAddQuickTile = { activity?.let(::addCaptionQuickSettingsTile) },
                 onDownload = { info -> viewModel.openUpdateUrl(updateCtx, info) }
             )
 

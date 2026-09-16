@@ -63,6 +63,8 @@ object UiStringCatalog {
     /** Every unique English string / template the UI may pass through `t[...]`. */
     val ALL: List<String> = listOf(
         "About this fork",
+        "Start floating translation from any app using the Quick Settings tile. Tap it again to stop.",
+        "Add quick action",
         "This is an independent fork of LiveCaptionN maintained by meliorisse. No support is offered for this version.",
         "Version %s",
         "Updates come only from meliorisse/LiveTranscribe-Android releases on GitHub.",

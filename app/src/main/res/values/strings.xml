@@ -76,4 +76,7 @@
     <string name="download_update">Download</string>
     <string name="dismiss">Dismiss</string>
     <string name="play_store_warning">Installed via Play Store. Downloading a GitHub release may break auto-updates.</string>
+    <string name="quick_caption_tile">Floating translation</string>
+    <string name="quick_caption_tile_help">Open Quick Settings, tap Edit, and add Floating translation.</string>
+    <string name="quick_caption_setup">Complete setup and grant overlay permission before using Floating translation.</string>
 </resources>

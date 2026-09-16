@@ -133,6 +133,10 @@ LiveCaptionN talks to any LibreTranslate-compatible server. The default endpoint
 
 You can self-host LibreTranslate with Docker in a few minutes — see the [LibreTranslate project](https://github.com/LibreTranslate/LibreTranslate).
 
+## Quick Settings shortcut
+
+In the app, open **About this fork → Add quick action** to add the **Floating translation** tile (Android 13+). On older Android versions, edit the Quick Settings panel and add it manually. Tap the tile from any app to start captioning with your saved settings; tap again to stop. Complete setup first. Android still asks for microphone or screen-capture permission when required. The app follows the system light/dark theme independently of the overlay theme.
+
 ## Build from source
 
 Requires **JDK 17** and the Android SDK. Tested with Android Studio Hedgehog+.
