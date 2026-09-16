@@ -18,8 +18,8 @@ class SelfBuildPremiumRepository : PremiumRepository {
         activity: Activity,
         product: PremiumProduct,
         email: String?
-    ): PurchaseFlowResult = PurchaseFlowResult.Failed("Pro is already included in this build.")
+    ): PurchaseFlowResult = PurchaseFlowResult.Failed("All features are already included.")
 
     override suspend fun openManageSubscription(activity: Activity): ManageAction =
-        ManageAction.Failed("This build does not require a subscription.")
+        ManageAction.Failed("All features are already included.")
 }

@@ -123,7 +123,7 @@ object UiStringCatalog {
         "On-device speech models",
         "Vosk models run fully offline on this phone. Downloading a model is a one-time step; uninstall any time to free storage. For the strongest transcription, pick the LARGE server-grade model for the languages you use most.",
         "Installed",
-        "Large · server-grade accuracy (Pro)",
+        "Large · server-grade accuracy",
         "Full Vosk server models with the lowest error rates. Each one is 80 MB to 2 GB but runs entirely on-device after the one-time download. This is the strongest transcription option for every language.",
         "Small · fast & light",
         "Compact ~40 MB models for quick installs or low-storage phones. Accuracy is noticeably lower than the large variants.",
@@ -138,8 +138,8 @@ object UiStringCatalog {
         "Text size: %dsp",
         "Opacity: %d%%",
         "Show original text",
-        "Overlay theme (Pro)",
-        "Overlay font (Pro)",
+        "Overlay theme",
+        "Overlay font",
 
         // Server / translation engine
         "Translation engine",
@@ -177,6 +177,7 @@ object UiStringCatalog {
         "Delete this transcript entry?\n\n\"%s\"",
         "Cancel",
 
+        "Saved setup",
         // Premium
         "Upgrade",
         "Ad-Free removes all ads. Pro unlocks larger on-device speech models, more translation languages, and extra overlay themes.",

@@ -30,6 +30,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import com.charles.livecaptionn.BuildConfig
 import com.charles.livecaptionn.data.CaptionProfile
 import com.charles.livecaptionn.data.CaptionProfileRepository
 import com.charles.livecaptionn.data.GlossaryEntry
@@ -97,26 +98,33 @@ fun FeatureToolsCard(
                     scope.launch { profiles.save(profile) }
                     profileItems = profileItems.filterNot { it.name == profile.name } + profile
                 }) { Text(t["Save preset"]) }
-                OutlinedButton(onClick = {
-                    if (hasPro) {
-                        val profile = CaptionProfile(
-                            name = t["Pro setup"],
-                            sourceLanguage = settings.sourceLanguageCode,
-                            targetLanguage = settings.targetLanguageCode,
-                            textSizeSp = settings.textSizeSp,
-                            showOriginal = settings.showOriginal,
-                            proOnly = true
-                        )
-                        scope.launch { profiles.save(profile) }
-                        profileItems = profileItems.filterNot { it.name == profile.name } + profile
-                    } else onRequiresPro()
-                }) { Text(t["Save Pro preset"]) }
+                if (!BuildConfig.SELF_BUILD_PRO) {
+                    OutlinedButton(onClick = {
+                        if (hasPro) {
+                            val profile = CaptionProfile(
+                                name = t["Pro setup"],
+                                sourceLanguage = settings.sourceLanguageCode,
+                                targetLanguage = settings.targetLanguageCode,
+                                textSizeSp = settings.textSizeSp,
+                                showOriginal = settings.showOriginal,
+                                proOnly = true
+                            )
+                            scope.launch { profiles.save(profile) }
+                            profileItems = profileItems.filterNot { it.name == profile.name } + profile
+                        } else onRequiresPro()
+                    }) { Text(t["Save Pro preset"]) }
+                }
             }
             if (profileItems.isNotEmpty()) {
                 LazyColumn(modifier = Modifier.fillMaxWidth().weight(1f, fill = false)) {
                     items(profileItems, key = { it.id }) { profile ->
                         Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                            Text(profile.name, Modifier.weight(1f))
+                            // Earlier versions generated this name for the redundant paid preset.
+                            // Keep saved settings and IDs, but remove the old tier label.
+                            val displayName = if (BuildConfig.SELF_BUILD_PRO && profile.proOnly &&
+                                profile.name in setOf("Pro setup", t["Pro setup"])
+                            ) t["Saved setup"] else profile.name
+                            Text(displayName, Modifier.weight(1f))
                             TextButton(onClick = { if (!profile.proOnly || hasPro) onApplyProfile(profile) else onRequiresPro() }) { Text(t["Use"]) }
                             IconButton(onClick = {
                                 scope.launch { profiles.delete(profile.id) }
@@ -130,7 +138,7 @@ fun FeatureToolsCard(
                 Text(t["Glossary and phrase replacements"], Modifier.weight(1f))
                 TextButton(onClick = { if (hasPro) showGlossaryDialog = true else onRequiresPro() }) {
                     Icon(Icons.Filled.Add, contentDescription = null)
-                    Text(t["Add Pro"])
+                    Text(t["Add"])
                 }
             }
             glossaryItems.forEach { entry ->

@@ -111,6 +111,7 @@ import com.charles.livecaptionn.overlay.OverlayThemeCatalog
 import com.charles.livecaptionn.ui.l10n.LocalUiStrings
 import com.charles.livecaptionn.ui.l10n.UiLanguagePickerDialog
 import com.charles.livecaptionn.ui.l10n.UiLocalizationRepository.UiLocalizationStage
+import com.charles.livecaptionn.BuildConfig
 import com.charles.livecaptionn.ui.premium.PremiumCard
 import com.charles.livecaptionn.ui.premium.PremiumViewModel
 import com.charles.livecaptionn.update.UpdateInfo
@@ -264,18 +265,18 @@ fun MainScreen(
                 ui = ui,
                 viewModel = viewModel,
                 onManageModels = { showVoskSheet = true },
-                hasPro = premiumState.premium.hasPro,
+                hasPro = BuildConfig.SELF_BUILD_PRO || premiumState.premium.hasPro,
                 onRequiresPro = { showUpgradePrompt = true }
             )
             OverlaySettingsCard(
                 ui = ui,
                 viewModel = viewModel,
-                hasPro = premiumState.premium.hasPro,
+                hasPro = BuildConfig.SELF_BUILD_PRO || premiumState.premium.hasPro,
                 onRequiresPro = { showUpgradePrompt = true }
             )
             FeatureToolsCard(
                 settings = ui.settings,
-                hasPro = premiumState.premium.hasPro,
+                hasPro = BuildConfig.SELF_BUILD_PRO || premiumState.premium.hasPro,
                 profiles = feedbackApp.container.captionProfiles,
                 glossary = feedbackApp.container.glossary,
                 micPermissionGranted = ui.micPermissionGranted,
@@ -342,7 +343,7 @@ fun MainScreen(
             VoskModelSheet(
                 models = ui.voskModels,
                 progress = ui.voskDownloadProgress,
-                hasPro = premiumState.premium.hasPro,
+                hasPro = BuildConfig.SELF_BUILD_PRO || premiumState.premium.hasPro,
                 onDismiss = { showVoskSheet = false },
                 onDownload = viewModel::downloadVoskModel,
                 onDelete = viewModel::deleteVoskModel,
@@ -361,7 +362,7 @@ fun MainScreen(
             )
         }
 
-        if (showUpgradePrompt) {
+        if (showUpgradePrompt && !BuildConfig.SELF_BUILD_PRO) {
             AlertDialog(
                 onDismissRequest = { showUpgradePrompt = false },
                 title = { Text(t["Pro feature"]) },
@@ -1019,7 +1020,7 @@ private fun VoskModelSheet(
             }
 
             if (availableLarge.isNotEmpty()) {
-                Text(t["Large · server-grade accuracy (Pro)"], style = MaterialTheme.typography.labelLarge)
+                Text(t["Large · server-grade accuracy"], style = MaterialTheme.typography.labelLarge)
                 Text(
                     text = t["Full Vosk server models with the lowest error rates. Each one is 80 MB to 2 GB but runs entirely on-device after the one-time download. This is the strongest transcription option for every language."],
                     style = MaterialTheme.typography.labelSmall,
@@ -1201,7 +1202,7 @@ private fun OverlaySettingsCard(
                 )
             }
 
-            Text(t["Overlay theme (Pro)"], style = MaterialTheme.typography.bodyMedium)
+            Text(t["Overlay theme"], style = MaterialTheme.typography.bodyMedium)
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -1219,7 +1220,7 @@ private fun OverlaySettingsCard(
                 }
             }
 
-            Text(t["Overlay font (Pro)"], style = MaterialTheme.typography.bodyMedium)
+            Text(t["Overlay font"], style = MaterialTheme.typography.bodyMedium)
             Row(
                 modifier = Modifier
                     .fillMaxWidth()

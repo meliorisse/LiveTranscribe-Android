@@ -42,16 +42,7 @@ fun PremiumCard(
     modifier: Modifier = Modifier
 ) {
     val t = LocalUiStrings.current
-    if (BuildConfig.SELF_BUILD_PRO) {
-        Card(modifier = modifier.fillMaxWidth(), shape = RoundedCornerShape(16.dp)) {
-            Text(
-                text = t["Pro and Ad-Free are included in this self-built version. No subscription required."],
-                modifier = Modifier.padding(16.dp),
-                style = MaterialTheme.typography.bodyMedium
-            )
-        }
-        return
-    }
+    if (BuildConfig.SELF_BUILD_PRO) return
     Card(
         modifier = modifier.fillMaxWidth(),
         shape = RoundedCornerShape(16.dp)
