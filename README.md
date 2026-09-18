@@ -6,12 +6,12 @@ This is an independent fork maintained by meliorisse. No support is offered for 
 
 **Real-time speech transcription and EN ⇄ VI translation, floating over any Android app.**
 
-[![Build & Release](https://github.com/chartmann1590/LiveTranscribe-Android/actions/workflows/build.yml/badge.svg)](https://github.com/chartmann1590/LiveTranscribe-Android/actions/workflows/build.yml)
-[![Latest release](https://img.shields.io/github/v/release/chartmann1590/LiveTranscribe-Android?color=8b5cf6)](https://github.com/chartmann1590/LiveTranscribe-Android/releases/latest)
-[![License](https://img.shields.io/github/license/chartmann1590/LiveTranscribe-Android?color=6366f1)](LICENSE)
+[![Build & Release](https://github.com/meliorisse/LiveTranscribe-Android/actions/workflows/build.yml/badge.svg?branch=self-build-pro)](https://github.com/meliorisse/LiveTranscribe-Android/actions/workflows/build.yml)
+[![Latest release](https://img.shields.io/github/v/release/meliorisse/LiveTranscribe-Android?color=8b5cf6)](https://github.com/meliorisse/LiveTranscribe-Android/releases/latest)
+[![License](https://img.shields.io/github/license/meliorisse/LiveTranscribe-Android?color=6366f1)](LICENSE)
 [![Platform](https://img.shields.io/badge/platform-Android%2010%2B-1a1330)](#requirements)
 
-### [Website](https://chartmann1590.github.io/LiveTranscribe-Android/) · [Google Play](https://play.google.com/store/apps/details?id=com.charles.livecaptionn) · [Download APK](https://github.com/chartmann1590/LiveTranscribe-Android/releases/latest) · [Report an issue](https://github.com/chartmann1590/LiveTranscribe-Android/issues)
+### [Source code](https://github.com/meliorisse/LiveTranscribe-Android/tree/self-build-pro) · [Setup guide](docs/remote-setup.html) · [Download APK](https://github.com/meliorisse/LiveTranscribe-Android/releases/latest)
 
 </div>
 
@@ -25,9 +25,7 @@ Both stages of the pipeline can run **fully on-device**: streaming Vosk handles 
 
 <div align="center">
 
-[![LiveCaptionN Promo Video](https://img.youtube.com/vi/ZK5CztBTgYI/maxresdefault.jpg)](https://youtu.be/ZK5CztBTgYI)
-
-*Click to watch the promo video on YouTube.*
+[Watch the demo included in this fork](docs/assets/video/demo.mp4)
 
 </div>
 
@@ -88,7 +86,7 @@ When you select **System Audio → Local Vosk** the source-language picker colla
 
 ## Quick install
 
-1. Download the latest APK from the [releases page](https://github.com/chartmann1590/LiveTranscribe-Android/releases/latest).
+1. Download the latest APK from the [releases page](https://github.com/meliorisse/LiveTranscribe-Android/releases/latest).
 2. On your Android device, enable **Install unknown apps** for your browser / file manager if prompted.
 3. Open the APK and install.
 4. Launch LiveCaptionN and grant **Microphone**, **Display over other apps**, and **Notifications** permissions. (Notifications are used for update alerts only — no telemetry.)
