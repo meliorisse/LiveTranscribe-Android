@@ -7,9 +7,9 @@ This is an independent fork maintained by meliorisse. No support is offered for 
 **Real-time speech transcription and EN ⇄ VI translation, floating over any Android app.**
 
 [![Build & Release](https://github.com/meliorisse/LiveTranscribe-Android/actions/workflows/build.yml/badge.svg?branch=self-build-pro)](https://github.com/meliorisse/LiveTranscribe-Android/actions/workflows/build.yml)
-[![Latest release](https://img.shields.io/github/v/release/meliorisse/LiveTranscribe-Android?color=8b5cf6)](https://github.com/meliorisse/LiveTranscribe-Android/releases/latest)
-[![License](https://img.shields.io/github/license/meliorisse/LiveTranscribe-Android?color=6366f1)](LICENSE)
-[![Platform](https://img.shields.io/badge/platform-Android%2010%2B-1a1330)](#requirements)
+[![Latest release](https://img.shields.io/github/v/release/meliorisse/LiveTranscribe-Android?color=245c9c)](https://github.com/meliorisse/LiveTranscribe-Android/releases/latest)
+[![License](https://img.shields.io/github/license/meliorisse/LiveTranscribe-Android?color=526377)](LICENSE)
+[![Platform](https://img.shields.io/badge/platform-Android%2010%2B-18212d)](#requirements)
 
 ### [Source code](https://github.com/meliorisse/LiveTranscribe-Android/tree/self-build-pro) · [Setup guide](docs/remote-setup.html) · [Download APK](https://github.com/meliorisse/LiveTranscribe-Android/releases/latest)
 
@@ -25,20 +25,34 @@ Both stages of the pipeline can run **fully on-device**: streaming Vosk handles 
 
 <div align="center">
 
-[Watch the demo included in this fork](docs/assets/video/demo.mp4)
+[Watch the earlier demo](docs/assets/video/demo.mp4) — this recording predates the current fork’s appearance; see the updated screenshots below.
 
 </div>
 
 ## Screenshots
 
+Current fork, following Android’s light/dark setting. These are unedited emulator captures; transcript and overlay text are sample content. The overlay example uses the Default theme at 90% opacity.
+
 <div align="center">
 
-<img src="docs/assets/screenshots/overlay_home.png" alt="Floating caption overlay on the home screen" width="240" />&nbsp;&nbsp;
-<img src="docs/assets/screenshots/overlay_listening.png" alt="Overlay captioning while listening" width="240" />&nbsp;&nbsp;
-<img src="docs/assets/screenshots/main.png" alt="Main settings screen" width="240" />&nbsp;&nbsp;
-<img src="docs/assets/screenshots/history.png" alt="Transcript history" width="240" />
+**Main screen · Light and dark**
+
+<img src="docs/assets/screenshots/main.png" alt="Main screen with neutral light surfaces and blue controls" width="280" />&nbsp;&nbsp;
+<img src="docs/assets/screenshots/main_dark.png" alt="Main screen following the system dark theme, with charcoal surfaces and soft blue controls" width="280" />
+
+**Language settings · Light and dark**
+
+<img src="docs/assets/screenshots/languages_light.png" alt="Source and target language settings in light mode" width="280" />&nbsp;&nbsp;
+<img src="docs/assets/screenshots/languages_dark.png" alt="Source and target language settings in dark mode" width="280" />
+
+**Floating captions · Transcript history**
+
+<img src="docs/assets/screenshots/overlay_listening.png" alt="Default charcoal caption overlay showing sample English and Vietnamese text" width="280" />&nbsp;&nbsp;
+<img src="docs/assets/screenshots/history.png" alt="Transcript history with sample bilingual entries in dark mode" width="280" />
 
 </div>
+
+Screenshot capture instructions are in [docs/screenshots.md](docs/screenshots.md).
 
 ## Features
 

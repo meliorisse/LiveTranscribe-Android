@@ -15,7 +15,7 @@ object OverlayThemeCatalog {
     const val FREE_THEME_ID = "default"
 
     val THEMES: List<OverlayTheme> = listOf(
-        OverlayTheme("default", "Default", backgroundRgb = Color.rgb(17, 17, 17), textRgb = Color.WHITE),
+        OverlayTheme("default", "Default", backgroundRgb = Color.rgb(24, 33, 45), textRgb = Color.rgb(244, 247, 252)),
         OverlayTheme("midnight", "Midnight Blue", backgroundRgb = Color.rgb(10, 18, 40), textRgb = Color.rgb(210, 225, 255)),
         OverlayTheme("sunset", "Sunset", backgroundRgb = Color.rgb(48, 20, 20), textRgb = Color.rgb(255, 214, 165)),
         OverlayTheme("highContrast", "High Contrast", backgroundRgb = Color.BLACK, textRgb = Color.YELLOW)

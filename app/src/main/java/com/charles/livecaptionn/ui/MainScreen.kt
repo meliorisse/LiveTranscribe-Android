@@ -35,7 +35,6 @@ import androidx.compose.material.icons.filled.Memory
 import androidx.compose.material.icons.filled.OpenInBrowser
 import androidx.compose.material.icons.filled.Palette
 import androidx.compose.material.icons.filled.TextFields
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontFamily
 import com.charles.livecaptionn.compatibility.CompatibilityTier
 import com.charles.livecaptionn.compatibility.DeviceSpecs
@@ -190,8 +189,9 @@ fun MainScreen(
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.primaryContainer,
-                    titleContentColor = MaterialTheme.colorScheme.onPrimaryContainer
+                    containerColor = MaterialTheme.colorScheme.background,
+                    titleContentColor = MaterialTheme.colorScheme.onBackground,
+                    actionIconContentColor = MaterialTheme.colorScheme.onBackground
                 )
             )
         }
@@ -386,7 +386,7 @@ private fun CaptionControlCard(
         modifier = Modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(
             containerColor = if (isRunning) MaterialTheme.colorScheme.primaryContainer
-            else MaterialTheme.colorScheme.surfaceVariant
+            else MaterialTheme.colorScheme.surfaceContainerHighest
         ),
         shape = RoundedCornerShape(16.dp)
     ) {
@@ -396,7 +396,7 @@ private fun CaptionControlCard(
         ) {
             val statusColor = when (ui.runtime.status) {
                 RecognitionStatus.LISTENING -> MaterialTheme.colorScheme.primary
-                RecognitionStatus.PROCESSING -> MaterialTheme.colorScheme.tertiary
+                RecognitionStatus.PROCESSING -> MaterialTheme.colorScheme.secondary
                 RecognitionStatus.PAUSED -> MaterialTheme.colorScheme.outline
                 RecognitionStatus.ERROR -> MaterialTheme.colorScheme.error
                 RecognitionStatus.IDLE -> MaterialTheme.colorScheme.outline
@@ -603,7 +603,7 @@ private fun AudioSourceCard(
                     Text(
                         text = t["Tip: for noticeably stronger transcription, tap Manage models and install a LARGE server-grade model for the languages you use — 80 MB to 2 GB each, fully offline after download."],
                         style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.tertiary
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
                 OutlinedButton(
@@ -639,7 +639,7 @@ private fun ChoiceChip(
     val bg = if (selected) MaterialTheme.colorScheme.primaryContainer
     else MaterialTheme.colorScheme.surface
     val border = if (selected) MaterialTheme.colorScheme.primary
-    else MaterialTheme.colorScheme.outline
+    else MaterialTheme.colorScheme.outlineVariant
 
     Row(
         modifier = modifier
@@ -878,7 +878,7 @@ private fun LanguagePickerField(
         modifier = Modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(10.dp))
-            .border(1.5.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(10.dp))
+            .border(1.dp, MaterialTheme.colorScheme.outlineVariant, RoundedCornerShape(10.dp))
             .clickable(enabled = options.isNotEmpty()) { open = true }
             .padding(horizontal = 14.dp, vertical = 14.dp),
         verticalAlignment = Alignment.CenterVertically,
@@ -1506,7 +1506,7 @@ private fun UiLanguageCard(
                 modifier = Modifier
                     .fillMaxWidth()
                     .clip(RoundedCornerShape(10.dp))
-                    .border(1.5.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(10.dp))
+                    .border(1.dp, MaterialTheme.colorScheme.outlineVariant, RoundedCornerShape(10.dp))
                     .clickable(enabled = !busy) { showPicker = true }
                     .padding(horizontal = 14.dp, vertical = 14.dp),
                 verticalAlignment = Alignment.CenterVertically,
@@ -1763,16 +1763,20 @@ private fun DeviceCompatibilityCard(
                         .clip(RoundedCornerShape(8.dp))
                         .background(
                             when (specs.tier) {
-                                CompatibilityTier.PASSED -> Color(0xFF2E7D32)
-                                CompatibilityTier.BORDERLINE -> Color(0xFFE65100)
-                                CompatibilityTier.UNSUPPORTED -> Color(0xFFC62828)
+                                CompatibilityTier.PASSED -> MaterialTheme.colorScheme.primaryContainer
+                                CompatibilityTier.BORDERLINE -> MaterialTheme.colorScheme.tertiaryContainer
+                                CompatibilityTier.UNSUPPORTED -> MaterialTheme.colorScheme.errorContainer
                             }
                         )
                         .padding(horizontal = 8.dp, vertical = 4.dp)
                 ) {
                     Text(
                         text = specs.tier.label,
-                        color = Color.White,
+                        color = when (specs.tier) {
+                            CompatibilityTier.PASSED -> MaterialTheme.colorScheme.onPrimaryContainer
+                            CompatibilityTier.BORDERLINE -> MaterialTheme.colorScheme.onTertiaryContainer
+                            CompatibilityTier.UNSUPPORTED -> MaterialTheme.colorScheme.onErrorContainer
+                        },
                         fontSize = 11.sp,
                         fontWeight = FontWeight.Bold
                     )
