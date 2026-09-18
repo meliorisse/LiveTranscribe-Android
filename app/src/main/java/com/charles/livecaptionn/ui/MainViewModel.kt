@@ -182,7 +182,7 @@ class MainViewModel(
     }
 
     fun updateTextSize(size: Float) {
-        viewModelScope.launch { container.settingsRepository.update { it.copy(textSizeSp = size) } }
+        viewModelScope.launch { container.settingsRepository.update { it.copy(textSizeSp = size.coerceIn(14f, 40f)) } }
     }
 
     fun updateOpacity(opacity: Float) {

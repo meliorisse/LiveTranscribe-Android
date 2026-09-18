@@ -28,6 +28,8 @@ them into docs/assets/screenshots. Current mappings:
 | main-dark.png | main_dark.png |
 | languages-light.png | languages_light.png |
 | languages-dark.png | languages_dark.png |
+| caption-preview-light.png | caption_preview_light.png |
+| caption-preview-dark.png | caption_preview_dark.png |
 | history-dark.png | history.png |
 | overlay-light.png | overlay_listening.png |
 | overlay-home-light.png | overlay_home.png |

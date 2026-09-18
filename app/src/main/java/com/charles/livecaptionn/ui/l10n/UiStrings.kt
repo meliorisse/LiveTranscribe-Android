@@ -167,6 +167,14 @@ object UiStringCatalog {
 
         // Overlay settings
         "Text size: %dsp",
+        "Caption preview",
+        "Original speech appears here.",
+        "Translated captions appear here. Adjust the size to make them comfortable to read.",
+        "Sample text. Changes apply to the floating window immediately. Line wrapping depends on its width.",
+        "Reset size",
+        "Smaller caption text",
+        "Larger caption text",
+        "Caption text size",
         "Opacity: %d%%",
         "Show original text",
         "Overlay theme",

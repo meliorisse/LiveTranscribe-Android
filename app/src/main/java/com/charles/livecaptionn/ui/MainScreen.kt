@@ -1,5 +1,9 @@
 package com.charles.livecaptionn.ui
 
+import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Remove
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.contentDescription
 import android.content.Intent
 import android.net.Uri
 import androidx.compose.foundation.background
@@ -1206,12 +1210,52 @@ private fun OverlaySettingsCard(
         Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             SectionLabel(t["Overlay"])
 
-            Text(t.format("Text size: %dsp", ui.settings.textSizeSp.toInt()), style = MaterialTheme.typography.bodyMedium)
-            Slider(
-                value = ui.settings.textSizeSp,
-                valueRange = 14f..40f,
-                onValueChange = viewModel::updateTextSize
+            Text(t["Caption preview"], style = MaterialTheme.typography.titleSmall)
+            OverlayPreview(
+                com.charles.livecaptionn.overlay.OverlayUiState(
+                    originalText = t["Original speech appears here."],
+                    transcriptText = t["Translated captions appear here. Adjust the size to make them comfortable to read."],
+                    textSizeSp = ui.settings.textSizeSp,
+                    opacity = ui.settings.overlayOpacity,
+                    showOriginal = ui.settings.showOriginal,
+                    themeId = if (hasPro) ui.settings.overlayThemeId else OverlayThemeCatalog.FREE_THEME_ID,
+                    fontId = if (hasPro) ui.settings.overlayFontId else OverlayFontCatalog.FREE_FONT_ID
+                )
             )
+            Text(t["Sample text. Changes apply to the floating window immediately. Line wrapping depends on its width."],
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant)
+
+            Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween) {
+                Text(t.format("Text size: %dsp", ui.settings.textSizeSp.toInt()),
+                    style = MaterialTheme.typography.bodyMedium)
+                TextButton(
+                    onClick = { viewModel.updateTextSize(20f) },
+                    enabled = ui.settings.textSizeSp != 20f
+                ) { Text(t["Reset size"]) }
+            }
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                IconButton(
+                    onClick = { viewModel.updateTextSize(ui.settings.textSizeSp - 1f) },
+                    enabled = ui.settings.textSizeSp > 14f
+                ) {
+                    Icon(Icons.Filled.Remove, contentDescription = t["Smaller caption text"])
+                }
+                Slider(
+                    modifier = Modifier.weight(1f).semantics { contentDescription = t["Caption text size"] },
+                    value = ui.settings.textSizeSp.coerceIn(14f, 40f),
+                    valueRange = 14f..40f,
+                    steps = 25,
+                    onValueChange = { viewModel.updateTextSize(kotlin.math.round(it)) }
+                )
+                IconButton(
+                    onClick = { viewModel.updateTextSize(ui.settings.textSizeSp + 1f) },
+                    enabled = ui.settings.textSizeSp < 40f
+                ) {
+                    Icon(Icons.Filled.Add, contentDescription = t["Larger caption text"])
+                }
+            }
 
             Text(t.format("Opacity: %d%%", (ui.settings.overlayOpacity * 100).toInt()), style = MaterialTheme.typography.bodyMedium)
             Slider(

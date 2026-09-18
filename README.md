@@ -45,6 +45,11 @@ Current fork, following Android’s light/dark setting. These are unedited emula
 <img src="docs/assets/screenshots/languages_light.png" alt="Source and target language settings in light mode" width="280" />&nbsp;&nbsp;
 <img src="docs/assets/screenshots/languages_dark.png" alt="Source and target language settings in dark mode" width="280" />
 
+**Caption preview · Text size controls**
+
+<img src="docs/assets/screenshots/caption_preview_light.png" alt="Live caption preview and text size controls in light mode" width="280" />&nbsp;&nbsp;
+<img src="docs/assets/screenshots/caption_preview_dark.png" alt="Live caption preview and text size controls in dark mode" width="280" />
+
 **Floating captions · Transcript history**
 
 <img src="docs/assets/screenshots/overlay_listening.png" alt="Default charcoal caption overlay showing sample English and Vietnamese text" width="280" />&nbsp;&nbsp;
@@ -56,6 +61,7 @@ Screenshot capture instructions are in [docs/screenshots.md](docs/screenshots.md
 
 ## Features
 
+- **Live caption preview and sizing** — the main screen’s Overlay card previews the selected font, theme, opacity, and original text. Adjust captions from 14–40 sp with the slider or minus/plus buttons, or reset to 20 sp. Changes apply to an active floating window immediately.
 - **Floating caption overlay** — draggable, resizable `SYSTEM_ALERT_WINDOW` window that sits on top of any app, with Pause, Minimize, and Close controls.
 - **Live streaming on-device recognition** — a continuous Vosk pipeline feeds ~100 ms PCM chunks into one long-lived recognizer and emits partial results as the words are spoken (not batched 2-second chunks), so captions feel like Google Live Caption.
 - **Mic _and_ system audio, same engine** — switch between the microphone and `MediaProjection` audio capture without changing backends. Both paths stream through the same low-latency pipeline.

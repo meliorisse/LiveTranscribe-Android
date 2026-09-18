@@ -38,6 +38,8 @@ class ReadmeScreenshots {
             }
             container.settingsRepository.update { it.copy(
                 onboardingComplete = true, borderlineWarningDismissed = true,
+                textSizeSp = 20f, showOriginal = true, overlayOpacity = 0.65f,
+                overlayThemeId = "default", overlayFontId = "default",
                 sttBackend = SttBackend.LOCAL_VOSK, autoDetectSource = false,
                 sourceLanguageCode = "en", targetLanguageCode = "vi", uiLanguageCode = "en"
             ) }
@@ -77,6 +79,13 @@ class ReadmeScreenshots {
             androidx.compose.ui.semantics.SemanticsActions.ScrollBy
         ) { scroll -> scroll(0f, 480 * compose.activity.resources.displayMetrics.density) }
         capture("languages")
+        compose.onNodeWithText("Reset size").performScrollTo()
+        compose.onNode(SemanticsMatcher.keyIsDefined(
+            androidx.compose.ui.semantics.SemanticsProperties.VerticalScrollAxisRange
+        )).performSemanticsAction(
+            androidx.compose.ui.semantics.SemanticsActions.ScrollBy
+        ) { scroll -> scroll(0f, 300 * compose.activity.resources.displayMetrics.density) }
+        capture("caption-preview")
         compose.onNodeWithContentDescription("History").performClick()
         compose.waitUntil(10_000) {
             compose.onAllNodesWithText("Transcript History").fetchSemanticsNodes().isNotEmpty()
