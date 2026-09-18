@@ -9,7 +9,7 @@
 [![License](https://img.shields.io/github/license/chartmann1590/LiveTranscribe-Android?color=6366f1)](LICENSE)
 [![Platform](https://img.shields.io/badge/platform-Android%2010%2B-1a1330)](#requirements)
 
-### [Website](https://chartmann1590.github.io/LiveTranscribe-Android/) · [Google Play](https://play.google.com/store/apps/details?id=com.charles.livecaptionn) · [Download APK](https://github.com/chartmann1590/LiveTranscribe-Android/releases/latest) · [Report an issue](https://github.com/chartmann1590/LiveTranscribe-Android/issues)
+### [Website](https://meliorisse.github.io/LiveTranscribe-Android/) · [Google Play Original Project](https://play.google.com/store/apps/details?id=com.charles.livecaptionn) · [Download APK](https://github.com/meliorisse/LiveTranscribe-Android/releases/latest)
 
 </div>
 
@@ -18,16 +18,6 @@
 LiveCaptionN listens through the microphone (or the currently playing app audio), transcribes what it hears in **real time** — word by word as you speak — translates between any supported language pair, and paints the result as a draggable caption window on top of whatever you are watching or browsing. It is built for people watching foreign-language videos, following along in a meeting, or studying another language hands-free.
 
 Both stages of the pipeline can run **fully on-device**: streaming Vosk handles speech-to-text (one long-lived recognizer fed ~100 ms audio chunks continuously), and Google ML Kit handles the text-to-text translation with ~59 languages cached offline after a one-time ~30 MB per-pair download. No server required. If you would rather use a LibreTranslate server for wider language coverage or a Whisper ASR endpoint for STT, both paths are still available in settings.
-
-## Demo
-
-<div align="center">
-
-[![LiveCaptionN Promo Video](https://img.youtube.com/vi/ZK5CztBTgYI/maxresdefault.jpg)](https://youtu.be/ZK5CztBTgYI)
-
-*Click to watch the promo video on YouTube.*
-
-</div>
 
 ## Screenshots
 
