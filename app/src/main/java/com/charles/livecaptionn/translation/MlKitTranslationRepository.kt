@@ -6,6 +6,7 @@ import com.google.mlkit.nl.translate.TranslateLanguage
 import com.google.mlkit.nl.translate.Translation
 import com.google.mlkit.nl.translate.Translator
 import com.google.mlkit.nl.translate.TranslatorOptions
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlinx.coroutines.withContext
@@ -32,7 +33,14 @@ import kotlin.coroutines.resumeWithException
  *     string. The service treats an empty result as "don't overwrite the
  *     last good translation".
  */
-class MlKitTranslationRepository : TranslationRepository {
+class MlKitTranslationRepository(
+    private val onSourceResolved: (TranslationSource) -> Unit = {}
+) : TranslationRepository {
+    private val languageDetector = MlKitLanguageDetector()
+    private val sourceResolver = TranslationSourceResolver(languageDetector) {
+        TranslateLanguage.fromLanguageTag(it.lowercase())
+    }
+
 
     // One Translator instance per source|target pair, cached for the
     // lifetime of the process so downloads and model loads only happen once.
@@ -48,7 +56,9 @@ class MlKitTranslationRepository : TranslationRepository {
         if (clean.isEmpty()) return clean
         if (targetCode.isBlank()) return clean
 
-        val src = TranslateLanguage.fromLanguageTag(sourceCode.lowercase())
+        val resolved = sourceResolver.resolve(clean, sourceCode, autoDetect)
+        onSourceResolved(resolved)
+        val src = TranslateLanguage.fromLanguageTag(resolved.languageCode.lowercase())
         val dst = TranslateLanguage.fromLanguageTag(targetCode.lowercase())
         if (src == null || dst == null) {
             Log.w(TAG, "ML Kit does not support pair $sourceCode → $targetCode; passing text through.")
@@ -62,7 +72,9 @@ class MlKitTranslationRepository : TranslationRepository {
             val translated = translateBlocking(translator, clean).trim()
             Log.d(TAG, "ML Kit $sourceCode→$targetCode ok: '${clean.take(40)}' → '${translated.take(40)}'")
             translated
-        } catch (t: Throwable) {
+        } catch (e: CancellationException) {
+            throw e
+        } catch (t: Exception) {
             Log.w(TAG, "ML Kit translation failed for $sourceCode→$targetCode", t)
             ""
         }
@@ -76,7 +88,9 @@ class MlKitTranslationRepository : TranslationRepository {
             val translator = translatorFor(src, dst)
             ensureModelDownloaded(translator)
             Log.i(TAG, "ML Kit model ready for $sourceCode → $targetCode")
-        } catch (t: Throwable) {
+        } catch (e: CancellationException) {
+            throw e
+        } catch (t: Exception) {
             Log.w(TAG, "ML Kit prewarm failed for $sourceCode → $targetCode", t)
         }
     }
@@ -129,6 +143,7 @@ class MlKitTranslationRepository : TranslationRepository {
         }
 
     override fun close() {
+        languageDetector.close()
         val toClose = synchronized(this) {
             val current = translators.values.toList()
             translators.clear()

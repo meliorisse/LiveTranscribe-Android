@@ -191,3 +191,14 @@ Issues and pull requests are welcome. Before opening a PR:
 ## License
 
 See [`LICENSE`](LICENSE).
+
+### Automatic language detection in this fork
+
+Enable **Auto-detect language** and restart captioning after changing speech settings.
+
+- **On-device translation:** a bundled, offline language detector selects the source language from recognized text. Uncertain or unsupported results fall back to the selected source language; the screen shows detection and fallback status.
+- **Android microphone recognition:** Android 14+ is asked to detect and switch speech languages. This requires a compatible recognizer and downloaded speech models. Older Android versions require manual speech-language selection.
+- **Remote Whisper system audio:** automatic mode omits the fixed source language so your configured server can detect it. Use a multilingual Whisper model. Short audio clips may be ambiguous.
+- **Local Vosk:** speech recognition still uses the selected single-language model. Text detection cannot correct audio transcribed using the wrong model; select the spoken language manually.
+
+With auto-detect disabled, both microphone and system-audio paths respect the selected source language. LibreTranslate continues to handle automatic text-language detection on your configured server.

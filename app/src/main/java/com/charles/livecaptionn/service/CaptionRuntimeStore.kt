@@ -20,7 +20,9 @@ data class CaptionRuntimeState(
     val status: RecognitionStatus = RecognitionStatus.IDLE,
     val running: Boolean = false,
     val paused: Boolean = false,
-    val lastError: String? = null
+    val lastError: String? = null,
+    val translationSource: com.charles.livecaptionn.translation.TranslationSource? = null,
+    val speechLanguageNotice: String? = null
 )
 
 class CaptionRuntimeStore {

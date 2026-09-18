@@ -210,7 +210,7 @@ class CaptionForegroundService : Service() {
             }
 
             app.container.runtimeStore.update {
-                it.copy(running = true, paused = false, status = RecognitionStatus.LISTENING, lastError = null)
+                it.copy(running = true, paused = false, status = RecognitionStatus.LISTENING, lastError = null, translationSource = null, speechLanguageNotice = null)
             }
 
             // Prewarm the active translation backend so the first spoken
@@ -314,7 +314,7 @@ class CaptionForegroundService : Service() {
                             context = this@CaptionForegroundService,
                             projection = mediaProjection!!,
                             sttUrl = settings.sttBaseUrl,
-                            languageCode = sttLanguageCode,
+                            languageCode = if (settings.autoDetectSource) null else sttLanguageCode,
                             sourceLanguageCode = sttLanguageCode,
                             sttBackend = settings.sttBackend,
                             localSttClient = app.container.localVoskClient,
@@ -328,9 +328,13 @@ class CaptionForegroundService : Service() {
                     }
                     AudioSource.MIC -> {
                         val engine = AndroidSpeechRecognizerManager(
-                            this@CaptionForegroundService, onSpeechResult
+                            this@CaptionForegroundService, onSpeechResult,
+                            onLanguageNotice = { notice ->
+                                app.container.runtimeStore.update { it.copy(speechLanguageNotice = notice) }
+                            }
                         )
                         engine.setLanguage(localeForSpeechRec)
+                        engine.setAutoDetect(settings.autoDetectSource)
                         speechEngine = engine
                         observeEngineStatus(engine.status)
                         engine.start()
@@ -420,7 +424,7 @@ class CaptionForegroundService : Service() {
             text = request.text,
             sourceCode = captionSettings.sourceLanguageCode,
             targetCode = captionSettings.targetLanguageCode,
-            autoDetect = currentAudioSource == AudioSource.SYSTEM || captionSettings.autoDetectSource
+            autoDetect = captionSettings.autoDetectSource
         )
         if (translated.isBlank()) return
         val translatedWithGlossary = applyGlossary(translated, app.container.glossary.list())

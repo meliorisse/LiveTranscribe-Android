@@ -3,6 +3,7 @@ package com.charles.livecaptionn.speech
 import android.util.Log
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import okhttp3.HttpUrl.Companion.toHttpUrl
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.MultipartBody
 import okhttp3.OkHttpClient
@@ -44,9 +45,7 @@ class WhisperSttClient {
                 if (cleanUrl.isBlank()) {
                     return@withContext TranscribeOutcome("", "Speech-to-text URL is empty")
                 }
-                val separator = if ("?" in cleanUrl) "&" else "?"
-                val languageParam = languageCode?.takeIf { it.isNotBlank() }?.let { "&language=$it" }.orEmpty()
-                val url = "${cleanUrl}${separator}task=transcribe$languageParam"
+                val url = whisperTranscriptionUrl(cleanUrl, languageCode)
                 Log.d("WhisperSttClient", "POST $url")
 
                 val body = MultipartBody.Builder()
@@ -94,4 +93,16 @@ class WhisperSttClient {
             else -> "Speech request failed"
         }
     }
+}
+
+/** A null language delegates speech-language detection to the Whisper server. */
+internal fun whisperTranscriptionUrl(baseUrl: String, languageCode: String?): okhttp3.HttpUrl {
+    val builder = baseUrl.toHttpUrl().newBuilder()
+        .setQueryParameter("task", "transcribe")
+        .setQueryParameter("output", "json")
+        .removeAllQueryParameters("language")
+    languageCode?.trim()?.takeIf { it.isNotEmpty() && it != "auto" }?.let {
+        builder.setQueryParameter("language", it)
+    }
+    return builder.build()
 }

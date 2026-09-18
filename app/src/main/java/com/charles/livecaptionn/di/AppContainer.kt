@@ -34,7 +34,9 @@ class AppContainer(context: Context) {
     val settingsRepository: SettingsRepository = SettingsDataStore(context.applicationContext)
     val runtimeStore: CaptionRuntimeStore = CaptionRuntimeStore()
     private val libreTranslationRepository: TranslationRepository = LibreTranslateRepository(settingsRepository)
-    private val mlKitTranslationRepository: TranslationRepository = MlKitTranslationRepository()
+    private val mlKitTranslationRepository: TranslationRepository = MlKitTranslationRepository { source ->
+        runtimeStore.update { it.copy(translationSource = source) }
+    }
     val translationRepository: TranslationRepository = RoutingTranslationRepository(
         settingsRepository = settingsRepository,
         mlKit = mlKitTranslationRepository,

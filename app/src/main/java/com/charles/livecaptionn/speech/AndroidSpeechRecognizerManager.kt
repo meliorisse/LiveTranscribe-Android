@@ -27,7 +27,8 @@ import kotlinx.coroutines.flow.StateFlow
  */
 class AndroidSpeechRecognizerManager(
     private val context: Context,
-    private val onSpeechResult: (SpeechResult) -> Unit
+    private val onSpeechResult: (SpeechResult) -> Unit,
+    private val onLanguageNotice: (String?) -> Unit = {}
 ) : SpeechEngine {
 
     private val statusMutable = MutableStateFlow(RecognitionStatus.IDLE)
@@ -38,6 +39,13 @@ class AndroidSpeechRecognizerManager(
     private var paused = false
     private var running = false
     private var languageCode: String = "en-US"
+    private var autoDetect = false
+    private var switchingUnavailable = false
+
+    fun setAutoDetect(enabled: Boolean) {
+        autoDetect = enabled && Build.VERSION.SDK_INT >= 34
+        switchingUnavailable = false
+    }
 
     fun setLanguage(languageCode: String) {
         this.languageCode = languageCode
@@ -93,6 +101,16 @@ class AndroidSpeechRecognizerManager(
 
                 override fun onError(error: Int) {
                     Log.w("SpeechManager", "SpeechRecognizer error: $error")
+                    if (autoDetect && !switchingUnavailable && Build.VERSION.SDK_INT >= 34 &&
+                        (error == SpeechRecognizer.ERROR_LANGUAGE_NOT_SUPPORTED ||
+                            error == SpeechRecognizer.ERROR_LANGUAGE_UNAVAILABLE ||
+                            error == SpeechRecognizer.ERROR_CLIENT)
+                    ) {
+                        switchingUnavailable = true
+                        onLanguageNotice("Speech language switching unavailable; using the selected source language. Check the device's speech-language downloads.")
+                        restartSoon(250L)
+                        return
+                    }
                     // ERROR_NO_MATCH / ERROR_SPEECH_TIMEOUT are normal mid-silence
                     // conditions on a continuous stream; just re-arm fast.
                     val isBenign = error == SpeechRecognizer.ERROR_NO_MATCH ||
@@ -115,6 +133,16 @@ class AndroidSpeechRecognizerManager(
                         ?.firstOrNull()
                         .orEmpty()
                     if (text.isNotBlank()) onSpeechResult(SpeechResult(text, isFinal = false))
+                }
+
+                override fun onLanguageDetection(results: Bundle) {
+                    if (Build.VERSION.SDK_INT < 34 || !autoDetect || switchingUnavailable) return
+                    val confidence = results.getInt(SpeechRecognizer.LANGUAGE_DETECTION_CONFIDENCE_LEVEL)
+                    if (confidence >= SpeechRecognizer.LANGUAGE_DETECTION_CONFIDENCE_LEVEL_CONFIDENT) {
+                        results.getString(SpeechRecognizer.DETECTED_LANGUAGE)?.let {
+                            onLanguageNotice("Speech language detected: $it")
+                        }
+                    }
                 }
 
                 override fun onEvent(eventType: Int, params: Bundle?) = Unit
@@ -153,7 +181,10 @@ class AndroidSpeechRecognizerManager(
             putExtra(RecognizerIntent.EXTRA_PARTIAL_RESULTS, true)
             putExtra(RecognizerIntent.EXTRA_MAX_RESULTS, 1)
             putExtra(RecognizerIntent.EXTRA_LANGUAGE, languageCode)
-            putExtra(RecognizerIntent.EXTRA_LANGUAGE_PREFERENCE, languageCode)
+            if (autoDetect && !switchingUnavailable && Build.VERSION.SDK_INT >= 34) {
+                putExtra(RecognizerIntent.EXTRA_ENABLE_LANGUAGE_DETECTION, true)
+                putExtra(RecognizerIntent.EXTRA_ENABLE_LANGUAGE_SWITCH, RecognizerIntent.LANGUAGE_SWITCH_BALANCED)
+            }
             // Strongly prefer on-device / cached models so captions don't need the cloud.
             putExtra(RecognizerIntent.EXTRA_PREFER_OFFLINE, true)
             // Long-form captioning: let the recognizer run with minimal end-pointing

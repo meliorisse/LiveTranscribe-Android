@@ -221,6 +221,7 @@ dependencies {
 
     // On-device translation (Google Translate models cached offline).
     implementation("com.google.mlkit:translate:17.0.3")
+    implementation("com.google.mlkit:language-id:17.0.6")
 
     // Firebase BoM pins compatible versions of every Firebase SDK below.
     implementation(platform("com.google.firebase:firebase-bom:33.7.0"))

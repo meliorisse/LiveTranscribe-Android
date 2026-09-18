@@ -100,6 +100,7 @@ import com.charles.livecaptionn.settings.TranslationBackend
 import com.charles.livecaptionn.speech.RecognitionStatus
 import com.charles.livecaptionn.speech.ModelQuality
 import com.charles.livecaptionn.speech.VoskModelInfo
+import com.charles.livecaptionn.translation.SourceResolutionReason
 import com.charles.livecaptionn.translation.MlKitLanguages
 import com.charles.livecaptionn.overlay.OverlayFontCatalog
 import com.charles.livecaptionn.overlay.OverlayThemeCatalog
@@ -775,11 +776,43 @@ private fun LanguageCard(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
-                Text(t["Auto-detect source"], style = MaterialTheme.typography.bodyMedium)
+                Text(t["Auto-detect language"], style = MaterialTheme.typography.bodyMedium)
                 Switch(
                     checked = ui.settings.autoDetectSource,
                     onCheckedChange = viewModel::updateAutoDetect
                 )
+            }
+            if (ui.settings.autoDetectSource) {
+                val help = when {
+                    vmStt == SttBackend.LOCAL_VOSK ->
+                        "Vosk cannot auto-detect spoken languages. Select the correct source model; auto-detect only identifies the resulting text for translation. For automatic speech-language detection, use Android built-in (microphone, supported Android 14+ devices) or Remote Whisper (system audio)."
+                    vmAudio == AudioSource.SYSTEM ->
+                        "Whisper will detect the spoken language on your configured server. Use a multilingual model; short audio clips can be ambiguous."
+                    android.os.Build.VERSION.SDK_INT >= 34 ->
+                        "Requests automatic speech-language switching from Android. Support depends on your recognizer and installed speech models."
+                    else ->
+                        "On this Android version, select the spoken language manually. Auto-detect identifies only the resulting text for translation."
+                }
+                Text(t[help], style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Text(t[if (usingMlKit) "Uncertain text detection falls back to the selected source language. Restart captioning after changing speech-language settings."
+                    else "Your translation server detects the text language. Restart captioning after changing speech-language settings."],
+                    style = MaterialTheme.typography.bodySmall)
+                if (usingMlKit && ui.runtime.running) {
+                    ui.runtime.translationSource?.let { source ->
+                        val message = when (source.reason) {
+                            SourceResolutionReason.DETECTED -> t.format("Detected text language: %s", source.languageCode)
+                            SourceResolutionReason.UNCERTAIN -> t.format("Language uncertain; using %s", source.languageCode)
+                            SourceResolutionReason.UNSUPPORTED -> t.format("Detected language is not supported for on-device translation; using %s", source.languageCode)
+                            SourceResolutionReason.FAILED -> t.format("Language detection unavailable; using %s", source.languageCode)
+                            SourceResolutionReason.MANUAL -> null
+                        }
+                        message?.let { Text(it, style = MaterialTheme.typography.bodySmall) }
+                    }
+                }
+                if (ui.runtime.running) {
+                    ui.runtime.speechLanguageNotice?.let { Text(it, style = MaterialTheme.typography.bodySmall) }
+                }
             }
         }
     }
