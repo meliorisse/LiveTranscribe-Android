@@ -5,6 +5,7 @@ import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.floatPreferencesKey
 import androidx.datastore.preferences.core.intPreferencesKey
+import androidx.datastore.preferences.core.stringSetPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
 import com.charles.livecaptionn.settings.AudioSource
@@ -27,6 +28,7 @@ class SettingsDataStore(private val context: Context) : SettingsRepository {
             p[SOURCE] = next.sourceLanguageCode
             p[TARGET] = next.targetLanguageCode
             p[AUTO_DETECT] = next.autoDetectSource
+            p[VOSK_DETECTION_LANGUAGES] = next.voskDetectionLanguages
             p[TEXT_SIZE] = next.textSizeSp
             p[OPACITY] = next.overlayOpacity.coerceIn(0.2f, 1f)
             p[SHOW_ORIGINAL] = next.showOriginal
@@ -60,6 +62,7 @@ class SettingsDataStore(private val context: Context) : SettingsRepository {
             sourceLanguageCode = this[SOURCE] ?: defaults.sourceLanguageCode,
             targetLanguageCode = this[TARGET] ?: defaults.targetLanguageCode,
             autoDetectSource = this[AUTO_DETECT] ?: false,
+            voskDetectionLanguages = this[VOSK_DETECTION_LANGUAGES] ?: emptySet(),
             textSizeSp = this[TEXT_SIZE] ?: 20f,
             overlayOpacity = this[OPACITY] ?: 0.65f,
             showOriginal = this[SHOW_ORIGINAL] ?: true,
@@ -86,6 +89,7 @@ class SettingsDataStore(private val context: Context) : SettingsRepository {
     private companion object {
         val SOURCE = stringPreferencesKey("source")
         val TARGET = stringPreferencesKey("target")
+        val VOSK_DETECTION_LANGUAGES = stringSetPreferencesKey("vosk_detection_languages")
         val AUTO_DETECT = booleanPreferencesKey("auto_detect")
         val TEXT_SIZE = floatPreferencesKey("text_size")
         val OPACITY = floatPreferencesKey("opacity")

@@ -199,6 +199,29 @@ Enable **Auto-detect language** and restart captioning after changing speech set
 - **On-device translation:** a bundled, offline language detector selects the source language from recognized text. Uncertain or unsupported results fall back to the selected source language; the screen shows detection and fallback status.
 - **Android microphone recognition:** Android 14+ is asked to detect and switch speech languages. This requires a compatible recognizer and downloaded speech models. Older Android versions require manual speech-language selection.
 - **Remote Whisper system audio:** automatic mode omits the fixed source language so your configured server can detect it. Use a multilingual Whisper model. Short audio clips may be ambiguous.
-- **Local Vosk:** speech recognition still uses the selected single-language model. Text detection cannot correct audio transcribed using the wrong model; select the spoken language manually.
+- **Local Vosk:** optional offline Whisper Tiny language identification can now switch between installed Vosk models for both microphone and system audio. See setup below.
 
 With auto-detect disabled, both microphone and system-audio paths respect the selected source language. LibreTranslate continues to handle automatic text-language detection on your configured server.
+
+
+### Offline speech-language detection with Vosk
+
+1. Select **Local Vosk** and download the speech models you want from the source-language picker. Small Vosk models are recommended to limit memory use while switching.
+2. Enable **Auto-detect language**, then choose **Download detector** (103 MB).
+3. Optionally select **Enabled speech languages**. With none selected, all installed Vosk languages are eligible. The source-language picker selects the initial model and the fallback when the detector is unavailable.
+4. Restart captioning after downloads or language-setting changes.
+
+The detector runs locally for either microphone or system audio. It checks independent four-second audio windows and requires two agreeing windows before switching to another enabled, installed Vosk language. Those windows are buffered and replayed into the chosen recognizer. Expect about 4–8 seconds of buffering plus device-dependent inference and model-loading time. Manual mode retains immediate streaming.
+
+Unsupported, disabled, or unavailable languages keep the current Vosk model and show a notice. An inference failure disables speech detection for that session while captioning continues with the current model. A missing detector uses the manually selected model. Silence is filtered using an amplitude threshold; this is not a full speech/music classifier. Whisper's language-ID API returns a top language, not calibrated confidence: short, noisy, musical, or mixed-language audio can still be misidentified. Pausing or stopping discards uncommitted buffered audio.
+
+The processing queue is bounded. A device that cannot keep up reports an error instead of silently dropping captured speech. Use smaller Vosk models or disable auto-detect if this happens. The language attached to each caption is also used as the text-translation fallback.
+
+#### Model provenance and builds
+
+- Runtime detector downloads are hosted in this fork's [model asset release](https://github.com/meliorisse/LiveTranscribe-Android/releases/tag/language-id-model-v1), separate from app updates. Both files are verified against pinned byte counts and SHA-256 hashes before installation.
+- Whisper Tiny multilingual int8 models are mirrored unchanged from [this pinned ONNX conversion](https://huggingface.co/csukuangfj/sherpa-onnx-whisper-tiny/tree/65176e2deb88badc814a94058666cadccc29b61c). Whisper is MIT licensed.
+- The build fetches [sherpa-onnx 1.13.8](https://github.com/k2-fsa/sherpa-onnx/releases/tag/v1.13.8) directly from its maintainers and verifies the AAR SHA-256 before compilation. sherpa-onnx is Apache-2.0 licensed; ONNX Runtime is MIT licensed. License texts ship in the APK under assets/licenses.
+- Detection requires no server and makes no audio uploads. The optional download and native runtime increase disk/memory use.
+
+Native integration tests are in VoskSpeechLanguageTest. Install a debug build, download the external speech fixtures linked in scripts/test-language-id.py, run that helper with adb on PATH, then run connectedGithubDebugAndroidTest with android.testInstrumentationRunnerArguments.class=com.charles.livecaptionn.VoskSpeechLanguageTest. These opt-in tests verify production model downloads, real English/German language detection, Vosk switching, and concurrent model lifetimes; they skip when fixtures are absent.

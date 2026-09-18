@@ -113,6 +113,11 @@ class MainViewModel(
                 mutableState.value = mutableState.value.copy(voskDownloadProgress = progress)
             }
         }
+        viewModelScope.launch {
+            container.spokenLanguageModels.state.collectLatest {
+                mutableState.value = mutableState.value.copy(spokenLanguageModel = it)
+            }
+        }
         if (BuildConfig.GITHUB_SELF_UPDATE_ENABLED) {
             viewModelScope.launch {
                 container.updateChecker.available.collectLatest { info ->
@@ -296,6 +301,19 @@ class MainViewModel(
             container.settingsRepository.update { it.copy(onboardingComplete = true) }
             container.uiLocalization.select(languageCode)
         }
+    }
+
+    fun downloadSpeechDetector() {
+        container.appScope.launch { container.spokenLanguageModels.download() }
+    }
+
+    fun removeSpeechDetector() {
+        if (mutableState.value.runtime.running) return
+        viewModelScope.launch { container.spokenLanguageModels.remove() }
+    }
+
+    fun updateVoskDetectionLanguages(languages: Set<String>) {
+        viewModelScope.launch { container.settingsRepository.update { it.copy(voskDetectionLanguages = languages) } }
     }
 
     fun downloadVoskModel(model: VoskModelInfo) {

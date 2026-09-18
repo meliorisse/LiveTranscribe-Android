@@ -67,6 +67,7 @@ class CaptionForegroundService : Service() {
     private var paused = false
     private var failureMessage: String? = null
     private var bufferedText = ""
+    private var bufferedSourceLanguage: String? = null
     private val lineIdCounter = java.util.concurrent.atomic.AtomicLong(0)
     @Volatile
     private var bufferedLineId: Long = NO_LINE_ID
@@ -234,7 +235,7 @@ class CaptionForegroundService : Service() {
                             translateSnapshot(final)
                         }
                         val partial = synchronized(this@CaptionForegroundService) {
-                            TranslationRequest(bufferedText, bufferedLineId, historyOnNextTranslate)
+                            TranslationRequest(bufferedText, bufferedLineId, historyOnNextTranslate, bufferedSourceLanguage)
                                 .also { historyOnNextTranslate = false }
                         }
                         if (partial.text.isNotBlank()) translateSnapshot(partial)
@@ -261,7 +262,7 @@ class CaptionForegroundService : Service() {
                         lastError = null
                     )
                 }
-                queueTranslation(transcript, candidateId, result.isFinal)
+                queueTranslation(transcript, candidateId, result.isFinal, result.sourceLanguage)
             }
 
             val mediaProjection = if (currentAudioSource == AudioSource.SYSTEM) {
@@ -294,6 +295,19 @@ class CaptionForegroundService : Service() {
             val useStreaming = backend == SttBackend.LOCAL_VOSK
 
             if (useStreaming) {
+                val installed = app.container.voskRegistry.installedLanguageCodes().toSet()
+                val allowed = if (settings.voskDetectionLanguages.isEmpty()) installed
+                    else installed.intersect(settings.voskDetectionLanguages)
+                val detectorReady = settings.autoDetectSource &&
+                    app.container.spokenLanguageModels.isInstalled() && allowed.isNotEmpty()
+                if (settings.autoDetectSource) {
+                    app.container.runtimeStore.update { it.copy(speechLanguageNotice = when {
+                        !app.container.spokenLanguageModels.isInstalled() ->
+                            "Download the offline speech-language detector to enable Vosk switching. Using $sttLanguageCode."
+                        allowed.isEmpty() -> "No enabled Vosk languages are installed. Using $sttLanguageCode."
+                        else -> "Listening for the spoken language. Initial detection may take about 4–8 seconds."
+                    }) }
+                }
                 val engine = StreamingSttEngine(
                     context = this@CaptionForegroundService,
                     audioSource = currentAudioSource,
@@ -302,7 +316,16 @@ class CaptionForegroundService : Service() {
                     localSttClient = app.container.localVoskClient,
                     scope = serviceScope,
                     onResult = onSpeechResult,
-                    onError = errorSink
+                    onError = errorSink,
+                    detectorFactory = if (detectorReady) ({
+                        com.charles.livecaptionn.speech.OfflineSpeechLanguageDetector(
+                            app.container.spokenLanguageModels.directory
+                        )
+                    }) else null,
+                    detectionLanguages = allowed,
+                    onLanguageNotice = { notice ->
+                        app.container.runtimeStore.update { it.copy(speechLanguageNotice = notice) }
+                    }
                 )
                 speechEngine = engine
                 observeEngineStatus(engine.status)
@@ -403,12 +426,13 @@ class CaptionForegroundService : Service() {
         fontId = if (hasPro) settings.overlayFontId else OverlayFontCatalog.FREE_FONT_ID
     )
 
-    private fun queueTranslation(text: String, lineId: Long, isFinal: Boolean = false) {
+    private fun queueTranslation(text: String, lineId: Long, isFinal: Boolean = false, sourceLanguage: String? = null) {
         synchronized(this) {
             bufferedText = text
+            bufferedSourceLanguage = sourceLanguage
             bufferedLineId = lineId
             if (isFinal) {
-                pendingFinalTranslations.add(TranslationRequest(text, lineId, true))
+                pendingFinalTranslations.add(TranslationRequest(text, lineId, true, sourceLanguage))
                 // Finals are retained in the queue; do not translate the same
                 // immutable snapshot again through the mutable partial slot.
                 bufferedText = ""
@@ -422,7 +446,7 @@ class CaptionForegroundService : Service() {
         val captionSettings = app.container.settingsRepository.settingsFlow.first()
         val translated = app.container.translationRepository.translate(
             text = request.text,
-            sourceCode = captionSettings.sourceLanguageCode,
+            sourceCode = request.sourceLanguage ?: captionSettings.sourceLanguageCode,
             targetCode = captionSettings.targetLanguageCode,
             autoDetect = captionSettings.autoDetectSource
         )
@@ -441,14 +465,14 @@ class CaptionForegroundService : Service() {
                 TranscriptEntry(
                     originalText = request.text,
                     translatedText = translatedWithGlossary,
-                    sourceLanguage = if (currentAudioSource == AudioSource.SYSTEM) "auto" else captionSettings.sourceLanguageCode,
+                    sourceLanguage = request.sourceLanguage ?: if (captionSettings.autoDetectSource) "auto" else captionSettings.sourceLanguageCode,
                     targetLanguage = captionSettings.targetLanguageCode
                 )
             )
         }
     }
 
-    private data class TranslationRequest(val text: String, val lineId: Long, val saveHistory: Boolean)
+    private data class TranslationRequest(val text: String, val lineId: Long, val saveHistory: Boolean, val sourceLanguage: String? = null)
 
     private fun showOverlay() {
         if (overlayController != null) return

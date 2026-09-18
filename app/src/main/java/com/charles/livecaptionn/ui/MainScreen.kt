@@ -49,6 +49,7 @@ import androidx.compose.material.icons.filled.Stop
 import androidx.compose.material.icons.filled.SurroundSound
 import androidx.compose.material.icons.filled.SwapHoriz
 import androidx.compose.material.icons.filled.Translate
+import androidx.compose.material3.Checkbox
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -783,9 +784,49 @@ private fun LanguageCard(
                 )
             }
             if (ui.settings.autoDetectSource) {
+                if (vmStt == SttBackend.LOCAL_VOSK) {
+                    Text(t["Offline speech-language detector"], style = MaterialTheme.typography.titleSmall)
+                    Text(t["Optional download: 103 MB. Audio stays on this device. Requires a Vosk model for each enabled language."],
+                        style = MaterialTheme.typography.bodySmall)
+                    val detector = ui.spokenLanguageModel
+                    when {
+                        detector.progress != null -> {
+                            LinearProgressIndicator(progress = { detector.progress }, modifier = Modifier.fillMaxWidth())
+                            Text(t.format("Downloading detector: %d%%", (detector.progress * 100).toInt()))
+                        }
+                        detector.installed -> {
+                            Text(t["Detector ready"])
+                            TextButton(onClick = viewModel::removeSpeechDetector, enabled = !ui.runtime.running) {
+                                Text(t["Remove detector"])
+                            }
+                        }
+                        else -> Button(onClick = viewModel::downloadSpeechDetector) {
+                            Text(t["Download detector"])
+                        }
+                    }
+                    detector.error?.let { Text(it, color = MaterialTheme.colorScheme.error) }
+                    Text(t["Enabled speech languages (none selected means all installed):"],
+                        style = MaterialTheme.typography.bodySmall)
+                    ui.voskModels.filter { it.installed }.distinctBy { it.languageCode }.forEach { model ->
+                        val chosen = ui.settings.voskDetectionLanguages
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Checkbox(
+                                checked = model.languageCode in chosen,
+                                onCheckedChange = { checked ->
+                                    viewModel.updateVoskDetectionLanguages(
+                                        if (checked) chosen + model.languageCode else chosen - model.languageCode
+                                    )
+                                }
+                            )
+                            Text(model.languageName)
+                        }
+                    }
+                    Text(t["Download more Vosk languages from the source-language picker. Your selected source language remains the fallback."],
+                        style = MaterialTheme.typography.bodySmall)
+                }
                 val help = when {
                     vmStt == SttBackend.LOCAL_VOSK ->
-                        "Vosk cannot auto-detect spoken languages. Select the correct source model; auto-detect only identifies the resulting text for translation. For automatic speech-language detection, use Android built-in (microphone, supported Android 14+ devices) or Remote Whisper (system audio)."
+                        "The optional offline detector selects an installed Vosk language after two agreeing audio windows. Expect about 4–8 seconds of buffering plus processing time. Short or mixed-language speech can be ambiguous."
                     vmAudio == AudioSource.SYSTEM ->
                         "Whisper will detect the spoken language on your configured server. Use a multilingual model; short audio clips can be ambiguous."
                     android.os.Build.VERSION.SDK_INT >= 34 ->

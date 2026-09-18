@@ -18,6 +18,7 @@ data class MainUiState(
     val libreLanguages: List<Language> = emptyList(),
     val libreLoading: Boolean = false,
     val libreError: String? = null,
+    val spokenLanguageModel: com.charles.livecaptionn.speech.SpokenLanguageModelState = com.charles.livecaptionn.speech.SpokenLanguageModelState(),
     val voskModels: List<VoskModelInfo> = emptyList(),
     val voskDownloadProgress: Map<String, Float> = emptyMap(),
     val updateCheckStatus: com.charles.livecaptionn.update.UpdateCheckStatus = com.charles.livecaptionn.update.UpdateCheckStatus.IDLE,

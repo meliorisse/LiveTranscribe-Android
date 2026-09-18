@@ -17,6 +17,11 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.currentCoroutineContext
+import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.isActive
@@ -24,15 +29,10 @@ import kotlinx.coroutines.launch
 import kotlin.math.abs
 
 /**
- * Continuous, low-latency speech-to-text engine backed by a live
- * [VoskStreamingSession]. Reads 16kHz mono PCM from either the mic or
- * MediaProjection system-audio capture and feeds ~100ms chunks straight into
- * Vosk, emitting partial results as they evolve and final segments on
- * silence boundaries.
- *
- * This replaces the old batch SystemAudioEngine, which accumulated 2-6s
- * windows and created a fresh Recognizer per chunk, throwing away streaming
- * state and making captions feel laggy and incoherent.
+ * Captures 16kHz mono PCM for both microphone and MediaProjection audio.
+ * Manual mode feeds Vosk immediately; automatic mode keeps capturing while the
+ * worker buffers speech, identifies its language, and replays it into Vosk.
+ * Native resources are closed only by their worker, never by the main thread.
  */
 class StreamingSttEngine(
     private val context: Context,
@@ -42,7 +42,10 @@ class StreamingSttEngine(
     private val localSttClient: LocalVoskSttClient,
     private val scope: CoroutineScope,
     private val onResult: (SpeechResult) -> Unit,
-    private val onError: (String?) -> Unit = {}
+    private val onError: (String?) -> Unit = {},
+    private val detectorFactory: (() -> SpeechLanguageDetector)? = null,
+    private val detectionLanguages: Set<String> = emptySet(),
+    private val onLanguageNotice: (String) -> Unit = {}
 ) : SpeechEngine {
 
     private val statusMutable = MutableStateFlow(RecognitionStatus.IDLE)
@@ -50,7 +53,8 @@ class StreamingSttEngine(
 
     private var audioRecord: AudioRecord? = null
     private var captureJob: Job? = null
-    private var session: VoskStreamingSession? = null
+    @Volatile private var pauseGeneration = 0
+    @Volatile private var processingGeneration = 0
 
     @Volatile private var running = false
     @Volatile private var paused = false
@@ -59,7 +63,7 @@ class StreamingSttEngine(
         if (running) return
         running = true
         paused = false
-        scope.launch(Dispatchers.IO) { startInternal() }
+        captureJob = scope.launch(Dispatchers.IO) { startInternal() }
     }
 
     override fun stop() {
@@ -68,13 +72,6 @@ class StreamingSttEngine(
         captureJob?.cancel()
         captureJob = null
         try { audioRecord?.stop() } catch (_: Throwable) {}
-        try { audioRecord?.release() } catch (_: Throwable) {}
-        audioRecord = null
-        session?.finish()?.let { remainder ->
-            if (remainder.isNotBlank()) onResult(SpeechResult(remainder, isFinal = true))
-        }
-        session?.close()
-        session = null
         if (audioSource == AudioSource.SYSTEM) {
             try { mediaProjection?.stop() } catch (_: Throwable) {}
         }
@@ -83,6 +80,7 @@ class StreamingSttEngine(
 
     override fun pause() {
         paused = true
+        pauseGeneration += 1
         statusMutable.value = RecognitionStatus.PAUSED
     }
 
@@ -93,141 +91,113 @@ class StreamingSttEngine(
     }
 
     private suspend fun startInternal() {
-        val localSession = localSttClient.openSession(languageCode, SAMPLE_RATE)
-        if (localSession == null) {
-            onError(
-                "No on-device model installed for '$languageCode'. " +
-                    "Open the language picker to download one."
-            )
-            statusMutable.value = RecognitionStatus.ERROR
-            running = false
-            return
-        }
-        session = localSession
-
-        val record = try {
-            buildAudioRecord()
-        } catch (t: Throwable) {
-            Log.e(TAG, "buildAudioRecord failed", t)
-            onError("Audio capture failed: ${t.message ?: t::class.java.simpleName}")
-            statusMutable.value = RecognitionStatus.ERROR
-            session?.close(); session = null
-            running = false
-            return
-        }
-
-        if (record == null || record.state != AudioRecord.STATE_INITIALIZED) {
-            onError(
-                if (audioSource == AudioSource.SYSTEM)
-                    "System audio capture failed to initialize"
-                else
-                    "Microphone capture failed to initialize"
-            )
-            statusMutable.value = RecognitionStatus.ERROR
-            record?.release()
-            session?.close(); session = null
-            running = false
-            return
-        }
-        audioRecord = record
-
+        var processor: BufferedLanguageSession? = null
+        var localSession: VoskStreamingSession? = null
+        var detector: SpeechLanguageDetector? = null
+        var record: AudioRecord? = null
         try {
+            localSession = localSttClient.openSession(languageCode, SAMPLE_RATE)
+                ?: error("No usable on-device model for '$languageCode'. Download one from the language picker.")
+            currentCoroutineContext().ensureActive()
+            detector = try {
+                detectorFactory?.invoke()
+            } catch (e: Exception) {
+                onLanguageNotice("Speech-language detector could not load; using $languageCode. Remove and download the detector to retry.")
+                null
+            } catch (e: LinkageError) {
+                onLanguageNotice("Speech-language detector is unavailable on this device; using $languageCode.")
+                null
+            }
+            currentCoroutineContext().ensureActive()
+            processor = BufferedLanguageSession(
+                languageCode, localSession, detector, detectionLanguages,
+                openSession = { localSttClient.openSession(it, SAMPLE_RATE) },
+                onResult = { if (running && !paused && processingGeneration == pauseGeneration) onResult(it) },
+                onNotice = { if (running && !paused && processingGeneration == pauseGeneration) onLanguageNotice(it) }
+            )
+            localSession = null // processor owns native resources from here
+            detector = null
+            record = buildAudioRecord() ?: error("Audio capture unavailable")
+            check(record.state == AudioRecord.STATE_INITIALIZED) { "Audio capture failed to initialize" }
+            audioRecord = record
+            currentCoroutineContext().ensureActive()
             record.startRecording()
-        } catch (t: Throwable) {
-            Log.e(TAG, "startRecording failed", t)
-            onError("Audio capture failed to start: ${t.message ?: t::class.java.simpleName}")
-            statusMutable.value = RecognitionStatus.ERROR
-            record.release()
+            check(record.recordingState == AudioRecord.RECORDSTATE_RECORDING) { "Audio capture did not start" }
+            statusMutable.value = RecognitionStatus.LISTENING
+            onError(null)
+            captureLoop(record, processor)
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            if (running) {
+                Log.e(TAG, "Capture failed", e)
+                onError(e.message ?: "Audio capture failed")
+                statusMutable.value = RecognitionStatus.ERROR
+            }
+        } finally {
+            // Only this worker closes native recognizers, including after in-flight inference.
+            processor?.close()
+            localSession?.close()
+            detector?.close()
+            try { record?.stop() } catch (_: Exception) {}
+            record?.release()
             audioRecord = null
-            session?.close(); session = null
             running = false
-            return
         }
-
-        if (record.recordingState != AudioRecord.RECORDSTATE_RECORDING) {
-            onError("Audio capture did not start")
-            statusMutable.value = RecognitionStatus.ERROR
-            record.release()
-            audioRecord = null
-            session?.close(); session = null
-            running = false
-            return
-        }
-
-        statusMutable.value = RecognitionStatus.LISTENING
-        onError(null)
-
-        captureJob = scope.launch(Dispatchers.Default) { captureLoop(record) }
     }
 
-    private suspend fun captureLoop(record: AudioRecord) {
-        val buffer = ByteArray(CHUNK_BYTES)
-        var silentChunkStreak = 0
-        var lastEmittedPartial = ""
-        var sawAnyAudioEver = false
+    private data class AudioChunk(val bytes: ByteArray, val generation: Int)
 
-        while (scope.isActive && running) {
-            if (paused) {
-                delay(120)
-                continue
-            }
-
-            val read = try {
-                record.read(buffer, 0, buffer.size)
-            } catch (t: Throwable) {
-                Log.w(TAG, "AudioRecord.read threw", t)
-                onError("Audio capture read failed")
-                statusMutable.value = RecognitionStatus.ERROR
-                delay(500)
-                continue
-            }
-
-            if (read <= 0) {
-                // read == 0 is transient on some devices; anything negative is fatal-ish.
-                if (read < 0) {
-                    Log.w(TAG, "AudioRecord.read returned $read")
-                    delay(100)
+    private suspend fun captureLoop(record: AudioRecord, processor: BufferedLanguageSession) = coroutineScope {
+        // Keep capture independent from inference/loading. Bound memory to 20 seconds;
+        // an overloaded device reports an error instead of silently dropping speech.
+        val chunks = Channel<AudioChunk>(200)
+        val reader = launch(Dispatchers.IO) {
+            try {
+                val buffer = ByteArray(CHUNK_BYTES)
+                while (isActive && running) {
+                    val generation = pauseGeneration
+                    val read = record.read(buffer, 0, buffer.size)
+                    currentCoroutineContext().ensureActive()
+                    if (read < 0) error("Audio capture failed ($read). Restart captioning.")
+                    if (read == 0) { delay(10); continue }
+                    if (paused || generation != pauseGeneration) continue
+                    check(chunks.trySend(AudioChunk(buffer.copyOf(read), generation)).isSuccess) {
+                        "Speech processing cannot keep up. Disable auto-detect or use smaller Vosk models, then restart."
+                    }
                 }
-                continue
+            } finally {
+                chunks.close()
             }
-
-            val avgAbs = averageAbsAmplitude(buffer, read)
-            val isSilent = avgAbs < SILENCE_AVERAGE_ABS_THRESHOLD
-
-            if (isSilent) {
-                silentChunkStreak += 1
-                // For system audio, flag when we've been silent for a long time so the
-                // user knows nothing is actually playing.
-                if (audioSource == AudioSource.SYSTEM &&
-                    !sawAnyAudioEver &&
-                    silentChunkStreak >= SILENT_CHUNKS_BEFORE_SYSTEM_HINT
-                ) {
-                    onError(NO_CAPTURABLE_AUDIO_MESSAGE)
+        }
+        var silentChunks = 0
+        var sawAudio = false
+        var generation = pauseGeneration
+        try {
+            for (chunk in chunks) {
+                currentCoroutineContext().ensureActive()
+                if (generation != pauseGeneration) {
+                    processor.discardPending()
+                    generation = pauseGeneration
                 }
-            } else {
-                silentChunkStreak = 0
-                sawAnyAudioEver = true
-                onError(null)
-            }
-
-            val localSession = session ?: break
-            val result = localSession.feed(buffer, read)
-
-            if (result.accepted) {
-                // Vosk hit a silence/segment boundary and emitted a finalized chunk.
-                if (result.text.isNotBlank()) {
-                    onResult(SpeechResult(result.text, isFinal = true))
-                    lastEmittedPartial = ""
+                if (paused || chunk.generation != generation) continue
+                val silent = averageAbsAmplitude(chunk.bytes, chunk.bytes.size) < SILENCE_AVERAGE_ABS_THRESHOLD
+                if (silent) {
+                    silentChunks += 1
+                    if (audioSource == AudioSource.SYSTEM && !sawAudio &&
+                        silentChunks >= SILENT_CHUNKS_BEFORE_SYSTEM_HINT) onError(NO_CAPTURABLE_AUDIO_MESSAGE)
+                } else {
+                    silentChunks = 0
+                    sawAudio = true
+                    onError(null)
                 }
-            } else if (result.text.isNotBlank() && result.text != lastEmittedPartial) {
-                // Live partial — drives the "words appearing as you speak" overlay.
-                onResult(SpeechResult(result.text, isFinal = false))
-                lastEmittedPartial = result.text
+                processingGeneration = generation
+                processor.feed(chunk.bytes, !silent)
+                if (running && !paused) statusMutable.value = RecognitionStatus.LISTENING
             }
-
-            if (!paused && running) {
-                statusMutable.value = RecognitionStatus.LISTENING
-            }
+        } finally {
+            reader.cancel()
+            chunks.cancel()
         }
     }
 

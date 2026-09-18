@@ -6,6 +6,8 @@ data class CaptionSettings(
     val sourceLanguageCode: String = "en",
     val targetLanguageCode: String = "vi",
     val autoDetectSource: Boolean = false,
+    /** Empty means all installed Vosk languages. */
+    val voskDetectionLanguages: Set<String> = emptySet(),
     val textSizeSp: Float = 20f,
     val overlayOpacity: Float = 0.65f,
     val showOriginal: Boolean = true,

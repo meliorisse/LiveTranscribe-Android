@@ -1,4 +1,5 @@
 import java.util.Properties
+import java.security.MessageDigest
 
 plugins {
     id("com.android.application")
@@ -217,6 +218,7 @@ dependencies {
     implementation("com.squareup.okhttp3:logging-interceptor:4.12.0")
     implementation("com.squareup.moshi:moshi-kotlin:1.15.1")
     implementation("com.alphacephei:vosk-android:0.3.75")
+    implementation("com.k2fsa:sherpa-onnx:1.13.8@aar")
     implementation("androidx.work:work-runtime-ktx:2.9.1")
 
     // On-device translation (Google Translate models cached offline).
@@ -270,3 +272,27 @@ tasks.matching {
 }.configureEach {
     enabled = false
 }
+
+// The upstream distributes the Android AAR as a GitHub release artifact.
+// Verify this pinned binary before compiling it into any app variant.
+val sherpaVerification by configurations.creating
+dependencies { sherpaVerification("com.k2fsa:sherpa-onnx:1.13.8@aar") }
+val verifySherpaArtifact by tasks.registering {
+    inputs.files(sherpaVerification)
+    doLast {
+        val digest = MessageDigest.getInstance("SHA-256")
+        sherpaVerification.singleFile.inputStream().use { input ->
+            val buffer = ByteArray(65536)
+            while (true) {
+                val count = input.read(buffer)
+                if (count < 0) break
+                digest.update(buffer, 0, count)
+            }
+        }
+        check(digest.digest().joinToString("") { "%02x".format(it) } ==
+            "633c24321e06b1fe79feafa03ea16cbc0f8a286641e2da3559bac91bdb13bd96") {
+            "Unexpected sherpa-onnx AAR checksum"
+        }
+    }
+}
+tasks.named("preBuild").configure { dependsOn(verifySherpaArtifact) }

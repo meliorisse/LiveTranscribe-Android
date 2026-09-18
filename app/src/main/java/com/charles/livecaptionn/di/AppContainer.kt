@@ -47,6 +47,7 @@ class AppContainer(context: Context) {
     val captionProfiles: CaptionProfileRepository = FileCaptionProfileRepository(context.applicationContext)
     val glossary: GlossaryRepository = FileGlossaryRepository(context.applicationContext)
     val voskRegistry: VoskModelRegistry = VoskModelRegistry(context.applicationContext)
+    val spokenLanguageModels = com.charles.livecaptionn.speech.SpokenLanguageModelStore(context.applicationContext)
     val localVoskClient: LocalVoskSttClient = LocalVoskSttClient(voskRegistry)
     val languageCatalogStore: LanguageCatalogStore = LanguageCatalogStore(settingsRepository, appScope)
     val updateChecker: UpdateChecker = UpdateChecker()
