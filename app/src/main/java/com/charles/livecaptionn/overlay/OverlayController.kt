@@ -48,6 +48,9 @@ class OverlayController(
     private var minButton: ImageButton? = null
     private var closeButton: ImageButton? = null
     private var params: WindowManager.LayoutParams? = null
+    private var resizeHandle: View? = null
+    private var minimized = false
+    private var expandedHeight = 0
 
     fun show(initialX: Int, initialY: Int, widthDp: Int, heightDp: Int) {
         if (root != null) return
@@ -75,6 +78,8 @@ class OverlayController(
             y = initialY
         }
         params = p
+        minimized = false
+        expandedHeight = heightPx
 
         // Root is a FrameLayout so we can place resize handle on top
         val frame = FrameLayout(context)
@@ -199,7 +204,8 @@ class OverlayController(
 
         // Resize handle at bottom-right corner
         val handleSize = dp(22)
-        val resizeHandle = View(context).apply {
+        resizeHandle = View(context).apply {
+            contentDescription = uiStrings()["Resize overlay"]
             val bg = GradientDrawable().apply {
                 cornerRadius = dp(4).toFloat()
                 setColor(Color.parseColor("#88FFFFFF"))
@@ -241,13 +247,19 @@ class OverlayController(
             append(": ")
             append(s[ui.status.displayName])
             val detail = ui.statusDetail?.trim().orEmpty()
-            if (detail.isNotEmpty()) {
+            if (detail.isNotEmpty() && !ui.minimized) {
                 append("\n")
                 append(detail)
             }
         }
         pauseButton?.contentDescription = if (ui.status == RecognitionStatus.PAUSED) s["Resume captioning"] else s["Pause captioning"]
-        minButton?.contentDescription = s["Minimize overlay"]
+        statusText?.maxLines = if (ui.minimized) 1 else Int.MAX_VALUE
+        statusText?.ellipsize = if (ui.minimized) TextUtils.TruncateAt.END else null
+        minButton?.apply {
+            contentDescription = s[if (ui.minimized) "Expand overlay" else "Minimize overlay"]
+            tooltipText = contentDescription
+            setImageResource(if (ui.minimized) android.R.drawable.arrow_up_float else android.R.drawable.arrow_down_float)
+        }
         closeButton?.contentDescription = s["Close overlay"]
 
         val textR = Color.red(theme.textRgb)
@@ -277,6 +289,21 @@ class OverlayController(
             if (ui.status == RecognitionStatus.PAUSED) android.R.drawable.ic_media_play
             else android.R.drawable.ic_media_pause
         )
+        resizeHandle?.visibility = if (ui.minimized) View.GONE else View.VISIBLE
+        params?.let { lp ->
+            if (ui.minimized != minimized) {
+                if (ui.minimized) expandedHeight = lp.height
+                minimized = ui.minimized
+                // Measure the header alone so larger system fonts also fit in the toolbar.
+                val header = container.getChildAt(0)
+                header.measure(
+                    View.MeasureSpec.makeMeasureSpec((lp.width - container.paddingLeft - container.paddingRight).coerceAtLeast(0), View.MeasureSpec.EXACTLY),
+                    View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED)
+                )
+                lp.height = if (minimized) header.measuredHeight + container.paddingTop + container.paddingBottom else expandedHeight
+                wm.updateViewLayout(frame, lp)
+            }
+        }
         // Auto-scroll to bottom on new text
         body?.post {
             try { body?.fullScroll(View.FOCUS_DOWN) } catch (_: Throwable) { }
@@ -304,6 +331,9 @@ class OverlayController(
         pauseButton = null
         minButton = null
         closeButton = null
+        resizeHandle = null
+        minimized = false
+        expandedHeight = 0
     }
 
     // ── Helpers ──
@@ -313,6 +343,7 @@ class OverlayController(
     private fun makeButton(resId: Int, contentDesc: String, onClick: () -> Unit) = ImageButton(context).apply {
         setImageResource(resId)
         contentDescription = contentDesc
+        tooltipText = contentDesc
         setBackgroundColor(Color.TRANSPARENT)
         setColorFilter(Color.WHITE)
         val size = dp(32)
@@ -361,6 +392,7 @@ class OverlayController(
         private var touchX = 0f; private var touchY = 0f
 
         override fun onTouch(v: View, event: MotionEvent): Boolean {
+            if (minimized) return false
             val lp = params ?: return false
             when (event.action) {
                 MotionEvent.ACTION_DOWN -> {

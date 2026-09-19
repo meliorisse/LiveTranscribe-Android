@@ -262,6 +262,8 @@ object UiStringCatalog {
         // Overlay window
         "Pause captioning",
         "Minimize overlay",
+        "Expand overlay",
+        "Resize overlay",
         "Close overlay",
         "Resume captioning",
 
